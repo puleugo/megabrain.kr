@@ -27,3 +27,5 @@ npm build
 ### 배포
 vercel을 통해 main브랜치의 최신 head로 자동 배포하고 있습니다.
 배포에 관한 문의사항은 [담당자(@puleugo)](https://github.com/puleugo)에게 전달해주세요.
+
+Vercel 개인 플랜을 사용하기 위해 [puleugo/megabrain.kr](https://github.com/puleugo/megabrain.kr)에 배포하고 있습니다.
