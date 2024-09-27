@@ -49,6 +49,8 @@ const config: Config = {
           showReadingTime: true,
           // Please change this to your repo.
           // Remove this to remove the "edit this page" links.
+          blogSidebarTitle: 'All posts',
+          blogSidebarCount: 'ALL',
           editUrl: 'https://github.com/inje-megabrain/megabrain.kr/tree/main',
         },
         theme: {customCss: './src/css/custom.css',},
@@ -87,6 +89,11 @@ const config: Config = {
         {
           to: '/recruit',
           label: '모집',
+          position: 'left',
+        },
+        {
+          to: '/blog',
+          label: '블로그',
           position: 'left',
         },
         // { // 주요 행사
