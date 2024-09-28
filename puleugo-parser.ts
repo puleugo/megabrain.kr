@@ -77,15 +77,9 @@ function createMarkdown(description: string, title: string, pubDate: string): st
     let markdownDescription = htmlToMd(description); // HTML을 Markdown으로 변환
 
     // 프로필 내용 추가
-    const profileContent = `---\n
-authors:\n
-  - name: 임채성\n
-    title: 팀장\n
-    url: https://github.com/puleugo\n
-    image_url: https://github.com/puleugo.png\n
-    socials:\n
-      github: puleugo\n
-date: ${pubDate}\n
+    const profileContent = `---
+authors: puleugo
+date: ${pubDate}
 ---\n\n`;
 
     // Markdown 형식 생성

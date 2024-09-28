@@ -1,21 +1,6 @@
 ---
-
-authors:
-
-  - name: 임채성
-
-    title: 팀장
-
-    url: https://github.com/puleugo
-
-    image_url: https://github.com/puleugo.png
-
-    socials:
-
-      github: puleugo
-
+authors: puleugo
 date: Mon, 12 Aug 2024 12:00:24 +0900
-
 ---
 
 # [번역] 방금 당신이 작성한 코드는 도메인 로직인가? | What is domain logic?

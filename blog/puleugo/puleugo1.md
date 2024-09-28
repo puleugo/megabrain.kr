@@ -1,21 +1,6 @@
 ---
-
-authors:
-
-  - name: 임채성
-
-    title: 팀장
-
-    url: https://github.com/puleugo
-
-    image_url: https://github.com/puleugo.png
-
-    socials:
-
-      github: puleugo
-
+authors: puleugo
 date: Mon, 29 Jul 2024 12:00:55 +0900
-
 ---
 
 # [번역] Mocks Aren't Stubs | Classicist vs Mockist

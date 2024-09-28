@@ -1,21 +1,6 @@
 ---
-
-authors:
-
-  - name: 임채성
-
-    title: 팀장
-
-    url: https://github.com/puleugo
-
-    image_url: https://github.com/puleugo.png
-
-    socials:
-
-      github: puleugo
-
+authors: puleugo
 date: Sat, 10 Aug 2024 12:00:53 +0900
-
 ---
 
 # 만개의 테스트를 작성하지 마라.

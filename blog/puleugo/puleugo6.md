@@ -1,21 +1,6 @@
 ---
-
-authors:
-
-  - name: 임채성
-
-    title: 팀장
-
-    url: https://github.com/puleugo
-
-    image_url: https://github.com/puleugo.png
-
-    socials:
-
-      github: puleugo
-
+authors: puleugo
 date: Mon, 19 Aug 2024 21:32:38 +0900
-
 ---
 
 # 개발자의 이상적인 해커톤 준비 방법

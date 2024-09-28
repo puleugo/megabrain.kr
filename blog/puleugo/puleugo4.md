@@ -1,21 +1,6 @@
 ---
-
-authors:
-
-  - name: 임채성
-
-    title: 팀장
-
-    url: https://github.com/puleugo
-
-    image_url: https://github.com/puleugo.png
-
-    socials:
-
-      github: puleugo
-
+authors: puleugo
 date: Sun, 11 Aug 2024 12:00:07 +0900
-
 ---
 
 # 티스토리에 마진 넣는법

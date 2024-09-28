@@ -1,21 +1,6 @@
 ---
-
-authors:
-
-  - name: 임채성
-
-    title: 팀장
-
-    url: https://github.com/puleugo
-
-    image_url: https://github.com/puleugo.png
-
-    socials:
-
-      github: puleugo
-
+authors: puleugo
 date: Wed, 31 Jul 2024 18:49:35 +0900
-
 ---
 
 # [Node.js] 트랜잭션을 활용한 테스트 격리 환경 구현하기 (1/2) | 솔루션 찾기

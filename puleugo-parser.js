@@ -119,7 +119,7 @@ function createMarkdown(description, title, pubDate) {
     var htmlToMd = require('html-to-md'); // require로 가져오기
     var markdownDescription = htmlToMd(description); // HTML을 Markdown으로 변환
     // 프로필 내용 추가
-    var profileContent = "---\n\nauthors:\n\n  - name: \uC784\uCC44\uC131\n\n    title: \uD300\uC7A5\n\n    url: https://github.com/puleugo\n\n    image_url: https://github.com/puleugo.png\n\n    socials:\n\n      github: puleugo\n\ndate: ".concat(pubDate, "\n\n---\n\n");
+    var profileContent = "---\nauthors: puleugo\ndate: ".concat(pubDate, "\n---\n\n");
     // Markdown 형식 생성
     return "".concat(profileContent, "# ").concat(title, "\n\n").concat(markdownDescription, "\n\n");
 }

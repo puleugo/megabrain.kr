@@ -1,21 +1,6 @@
 ---
-
-authors:
-
-  - name: 임채성
-
-    title: 팀장
-
-    url: https://github.com/puleugo
-
-    image_url: https://github.com/puleugo.png
-
-    socials:
-
-      github: puleugo
-
+authors: puleugo
 date: Mon, 19 Aug 2024 21:59:04 +0900
-
 ---
 
 # 당신의 블로그, 계왕권을 쓸 수 있다.
@@ -33,7 +18,7 @@ date: Mon, 19 Aug 2024 21:59:04 +0900
 
 그래서 '**국내 개발자의 글을 해외로 수출하면 수요가 있지 않을까?'** 라는 생각이 들었습니다. 대표적 선진국 9개국의 인구수는 한국의 약 44배이므로, 단순 계산으로 <u>당신의 블로그는 **44배 이상의 영향력**</u>을 얻을 수 있습니다. 드래곤볼의 계왕권을 떠올리며 프로젝트 이름을 이렇게 정했습니다.
 
-![ASDASD](https://blog.kakaocdn.net/dn/CBX8T/btsI5dW2Rr2/EettUYp2gyLk6Ztnpxamb1/img.png)
+![](https://blog.kakaocdn.net/dn/CBX8T/btsI5dW2Rr2/EettUYp2gyLk6Ztnpxamb1/img.png)
 
 딸깍 3배.
 

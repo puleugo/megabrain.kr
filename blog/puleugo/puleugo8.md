@@ -1,21 +1,6 @@
 ---
-
-authors:
-
-  - name: 임채성
-
-    title: 팀장
-
-    url: https://github.com/puleugo
-
-    image_url: https://github.com/puleugo.png
-
-    socials:
-
-      github: puleugo
-
+authors: puleugo
 date: Mon, 26 Aug 2024 15:29:16 +0900
-
 ---
 
 # KAIST GDSC 해커톤 참여, 발표 회고
