@@ -3,3 +3,13 @@ puleugo:
   title: 2024 팀장, 백엔드
   url: https://github.com/puleugo
   image_url: https://github.com/puleugo.png
+  socials:
+      github: puleugo
+
+singhic:
+  name: 서상혁(Singhic)
+  title: 정회원, 백엔드
+  url: https://github.com/singhic
+  image_url: https://github.com/singhic.png
+  socials:
+      github: singhic
