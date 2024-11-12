@@ -39,10 +39,11 @@ Object.defineProperty(exports, "__esModule", { value: true });
 var axios_1 = require("axios");
 var fast_xml_parser_1 = require("fast-xml-parser");
 var fs = require("fs");
+var path = require("path");
 var url = 'https://puleugo.tistory.com/rss'; // RSS 피드 URL
 function fetchAndParseXML() {
     return __awaiter(this, void 0, void 0, function () {
-        var response, xmlData, options, parser, jsonData, hasDuplicate, error_1;
+        var response, xmlData, options, parser, jsonData, error_1;
         return __generator(this, function (_a) {
             switch (_a.label) {
                 case 0:
@@ -57,12 +58,11 @@ function fetchAndParseXML() {
                     };
                     parser = new fast_xml_parser_1.XMLParser(options);
                     jsonData = parser.parse(xmlData);
-                    return [4 /*yield*/, saveDescriptionsAsMarkdown(jsonData)];
+                    // 기존 파일 내용과 비교 후 모든 파일 재생성
+                    return [4 /*yield*/, updateAllMarkdownFiles(jsonData)];
                 case 2:
-                    hasDuplicate = _a.sent();
-                    if (hasDuplicate) {
-                        console.log('No new files created: Duplicate content found.');
-                    }
+                    // 기존 파일 내용과 비교 후 모든 파일 재생성
+                    _a.sent();
                     return [3 /*break*/, 4];
                 case 3:
                     error_1 = _a.sent();
@@ -73,24 +73,23 @@ function fetchAndParseXML() {
         });
     });
 }
-function saveDescriptionsAsMarkdown(jsonData) {
+function updateAllMarkdownFiles(jsonData) {
     return __awaiter(this, void 0, void 0, function () {
-        var htmlToMd, fileIndex, items, existingFilesContent, i, filePath, i, item, category, title, pubDate, markdown, outputPath;
+        var htmlToMd, outputDirectory, newMarkdownContents, items, i, item, category, title, pubDate, markdown, existingFilesContent, i, filePath, hasDifferences;
         return __generator(this, function (_a) {
             htmlToMd = require('html-to-md');
-            fileIndex = 1;
-            // JSON에서 item 배열 추출 및 최신 항목부터 역순으로 처리
+            outputDirectory = 'blog/puleugo/';
+            // 디렉토리 생성
+            if (!fs.existsSync(outputDirectory)) {
+                fs.mkdirSync(outputDirectory, { recursive: true });
+            }
+            newMarkdownContents = [];
+            // JSON에서 item 배열 추출
             if (jsonData.rss && jsonData.rss.channel && jsonData.rss.channel.item) {
-                items = Array.isArray(jsonData.rss.channel.item) ? jsonData.rss.channel.item : [jsonData.rss.channel.item];
-                existingFilesContent = [];
-                // 기존 파일 내용 수집
-                for (i = 1;; i++) {
-                    filePath = "blog/puleugo/puleugo".concat(i, ".md");
-                    if (!fs.existsSync(filePath))
-                        break; // 더 이상 파일이 없으면 중단
-                    existingFilesContent.push(fs.readFileSync(filePath, 'utf-8'));
-                }
-                // 최신 항목부터 처리
+                items = Array.isArray(jsonData.rss.channel.item)
+                    ? jsonData.rss.channel.item
+                    : [jsonData.rss.channel.item];
+                // 최신 항목부터 역순으로 처리하여 새로운 Markdown 콘텐츠 생성
                 for (i = items.length - 1; i >= 0; i--) {
                     item = items[i];
                     category = item.category;
@@ -98,33 +97,69 @@ function saveDescriptionsAsMarkdown(jsonData) {
                         title = item.title || 'No Title';
                         pubDate = item.pubDate;
                         markdown = createMarkdown(item.description, title, pubDate);
-                        outputPath = "blog/puleugo/puleugo".concat(fileIndex, ".md");
-                        // 기존 파일 내용과 비교
-                        if (!existingFilesContent.includes(markdown)) {
-                            saveMarkdownFile(markdown, outputPath);
-                            fileIndex++; // 파일 인덱스 증가
-                        }
-                        else {
-                            console.log("Duplicate content found, not creating file: ".concat(outputPath));
-                            return [2 /*return*/, true]; // 중복 내용이 발견되었으므로 true 반환
-                        }
+                        newMarkdownContents.push(markdown);
                     }
                 }
             }
-            return [2 /*return*/, false]; // 중복이 없었으므로 false 반환
+            existingFilesContent = [];
+            for (i = 1;; i++) {
+                filePath = "".concat(outputDirectory, "puleugo").concat(i, ".md");
+                if (!fs.existsSync(filePath))
+                    break;
+                existingFilesContent.push(fs.readFileSync(filePath, 'utf-8'));
+            }
+            hasDifferences = checkForDifferences(existingFilesContent, newMarkdownContents);
+            // 차이가 있을 경우 모든 파일을 1번부터 재생성
+            if (hasDifferences) {
+                console.log('Changes detected. Regenerating all Markdown files...');
+                regenerateMarkdownFiles(newMarkdownContents, outputDirectory);
+            }
+            else {
+                console.log('No changes detected. No files were updated.');
+            }
+            return [2 /*return*/];
         });
     });
 }
+// 변경 사항 비교
+function checkForDifferences(existingContents, newContents) {
+    if (existingContents.length !== newContents.length) {
+        return true; // 파일 개수가 다르면 변경됨
+    }
+    // 파일 내용 비교
+    for (var i = 0; i < existingContents.length; i++) {
+        if (existingContents[i] !== newContents[i]) {
+            return true; // 내용이 다르면 변경됨
+        }
+    }
+    return false; // 모든 파일이 동일하면 변경 없음
+}
+// 모든 Markdown 파일 재생성
+function regenerateMarkdownFiles(contents, directory) {
+    // 기존 파일 삭제
+    fs.readdirSync(directory).forEach(function (file) {
+        if (file.startsWith('puleugo') && file.endsWith('.md')) {
+            fs.unlinkSync(path.join(directory, file));
+        }
+    });
+    // 새로운 파일 생성
+    contents.forEach(function (content, index) {
+        var filePath = "".concat(directory, "puleugo").concat(index + 1, ".md");
+        saveMarkdownFile(content, filePath);
+    });
+}
+// Markdown 콘텐츠 생성
 function createMarkdown(description, title, pubDate) {
-    var htmlToMd = require('html-to-md'); // require로 가져오기
-    var markdownDescription = htmlToMd(description); // HTML을 Markdown으로 변환
+    var htmlToMd = require('html-to-md');
+    var markdownDescription = htmlToMd(description);
     // 프로필 내용 추가
     var profileContent = "---\nauthors: puleugo\ndate: ".concat(pubDate, "\n---\n\n");
-    // Markdown 형식 생성
     return "".concat(profileContent, "# ").concat(title, "\n\n").concat(markdownDescription, "\n\n");
 }
+// Markdown 파일 저장
 function saveMarkdownFile(markdown, filePath) {
     fs.writeFileSync(filePath, markdown);
     console.log("Markdown file created: ".concat(filePath));
 }
+// XML 데이터 가져와서 Markdown 파일로 변환
 fetchAndParseXML();
