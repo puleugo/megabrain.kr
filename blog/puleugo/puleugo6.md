@@ -1,110 +1,76 @@
 ---
 authors: puleugo
-date: Mon, 19 Aug 2024 21:59:04 +0900
+date: Mon, 11 Nov 2024 12:31:32 +0900
 ---
 
-# 당신의 블로그, 계왕권을 쓸 수 있다.
+# [계왕권 프로젝트] 베타버전 개발기
 
-\`
+## 길고 험난했던 베타버전 출시
 
-[알파 버전 개발중](https://github.com/puleugo/kablog)
+![](https://blog.kakaocdn.net/dn/pnKrz/btsKDPF1s8X/6wbrYRDZAuxOMbmmorWryk/img.png)
 
-[GitHub - puleugo/kablog: Automated Translation Development Post Distribution Application
+일일 1389 커밋
 
-Automated Translation Development Post Distribution Application - puleugo/kablog
+꽤나 막혔던 프로젝트였습니다. 새로운 프로젝트를 하는게 오랜만인지라 너무 추상적인 계획만 세우고 작업을 들어가서 구체화 과정에서 멀리 돌아간 작업들이 굉장히 많네요. 대표적인 것들만 정리해보겠습니다.
 
-github.com](https://github.com/puleugo/kablog)
+## 1\. 플랫폼에 의존하는 번역글 Link?
 
-## 계왕권이 뭔데..
+처음 생각했던 번역 게시글 업로드 후 본문을 수정하여 JS Injection 방식을 사용한 Link 방식은 문제가 많았습니다.
 
-최근 취업 불황으로 인해 국내 개발자들의 평균 스펙이 향상되었습니다. 그러나 <u>해외 블로그의 기술적 난이도는 국내보다 낮습니다</u>. 예시로 일본의 대표적 기술 블로그 플랫폼인 [Qiita 인기 게시글](https://qiita.com/trend)을 보면 이를 확인할 수 있습니다. (08/19 기준)
+우선, <u>게시글 본문을 수정</u>해야 하는 문제가 있습니다. 대부분의 블로그 플랫폼(Medium, Dev.to, Qiita, Tistory)의 API는 게시글 수정 기능을 지원하지 않으며 수정기능을 지원한다고 하더라도 JS Injection을 막아둔 경우가 대부분이었습니다.  
+Tistory의 API를 분석하여 Reverse Engineering을 통해 HTTP 통신만을 활용하여 게시글 수정을 구현하긴하였다만. 이는 너무 <u>난이도가 높았습니다</u>. 사실 Medium이 GraphQL 방식으로 통신하는 것을 보고 포기했습니다.
 
-* 【완전판】 이것 1개로 React의 기본을 마스터할 수 있다! 초보자 튜토리얼!
-* 【AWS 컨테이너 입문】간단한 Python 앱을 ECS에 배포해 보자!
-* Excel에서 CSV 파일을 '0 내림'이나 '문자화'없이 열기
-* 【Vue】VeeVallidate에 의한 커스텀 밸리데이션의 작성
+이방식은 포기하기 다른방식을 찾아봤습니다.
 
-그래서 '**국내 개발자의 글을 해외로 수출하면 수요가 있지 않을까?'** 라는 생각이 들었습니다. 대표적 선진국 9개국의 인구수는 한국의 약 44배이므로, 단순 계산으로 <u>당신의 블로그는 **44배 이상의 영향력**</u>을 얻을 수 있습니다. 드래곤볼의 계왕권을 떠올리며 프로젝트 이름을 이렇게 정했습니다.
+### 다행히도 Sitemap을 통해서도 Link가 가능하다.
 
-![](https://blog.kakaocdn.net/dn/CBX8T/btsI5dW2Rr2/EettUYp2gyLk6Ztnpxamb1/img.png)
+「[구글에게 페이지의 번역본에 대해 알려주기](https://developers.google.com/search/docs/specialty/international/localized-versions?hl=en&visit_id=638593952115326122-859270653&rd=1)」를 읽어보면 다른 방식들도 있습니다.
 
-딸깍 3배.
+1. ~~HTML tag에 첨부.~~ (실패)
+2. ~~HTTP Header에 첨부.~~ (플랫폼의 응답을 조작하는 방법이 떠오르지 않아 패스)
+3. Sitemap에 명시하기. &larr; 이 친구에 대해 알아봅시다.
 
-> \[출시 알림 신청을 받고 있습니다. 많은 관심 부탁드립니다!!\]  
-> [\[개발블로그 계왕권\] 프로젝트 출시 알림 신청](https://forms.gle/rQvbYyTxoeLdowmi6)
+Sitemap는 구글 크롤러에게 사이트의 페이지, 영상, 기타 파일에 대한 관계를 알려주기 위해 제공하는 파일입니다. 예를 들어 아래와 같은 정보를 제공할 수 있습니다:
 
-## 설계 해보자
+* <u>번역본 링크</u>
+* 게시글의 마지막 수정일, 제목, 우선순위
 
-저는 초등학교 4학년때부터 11년간 블로그를 운영해 온 블로거입니다. 중학생 시절에는 블로그 마케팅도 경험했고, 네이버 블로그에서 누적 조회수 1,028k를 달성했습니다. ([향로](https://jojoldu.tistory.com/)님의 약 10% 정도)
+굉장히 재미있는 파일입니다. Tistory에서도 제공합니다.  
+[https://puleugo.tistory.com/sitemap](https://puleugo.tistory.com/sitemap)
 
-블로그 관련 콘텐츠에는 나름의 인사이트가 있다고 자부합니다. 이 관점에서 가장 큰 이슈는 다음과 같습니다.
+그럼 문제를 정의하면 '티스토리의 사이트 맵을 어떻게 수정하냐?' 일까요? 잠깐.. 아니죠. 문제는 '<u>구글에게 제공할 내 블로그의 Sitemap을 작성하는 방법입니다.</u>'  
+문제를 다시 정의하니 '<u>개인 도메인을 발급하여 블로그와 연결하는 방법을 떠올렸습니다</u>.' 개인도메인이라면 Sitemap을 마음대로 수정할 수 있을 것 같았거든요. 이는 정답이었습니다.
 
-### 이슈: 구글은 번역 글을 좋아하지 않는다.
+[https://www.puleugo.dev/sitemap.xml](https://www.puleugo.dev/sitemap.xml)
 
-**구글은 유사 문서를 굉장히 싫어합니다**. 당신이 며칠을 고민해서 작성한 글이라도 글의 내용이 유사하다면 검색결과 우선순위가 하락합니다. 특히 이미지를 동일한 이미지를 그대로 쓰면 우선순위가 하락합니다. 모든 검색엔진이 자체제작 콘텐츠를 좋아해요.
+Vercel을 활용하여 Github Repository에 업로드된 sitemap.xml을 도메인에 연결하였습니다. 이러면 Free + Serverless + File System으로 작업 가능해졌네요! (5분정도면 작업가능합니다.)
 
-![](https://blog.kakaocdn.net/dn/Ck4j8/btsI9wN5tXS/vudkdGWYzi0yzuyxVJrXkK/img.png)
+## 2\. 너무너무 많은 외부의존성
 
-인기글 중 자체 콘텐츠(8/10)
+본 프로젝트는 프로젝트 규모 대비 외부의존성이 굉장히 많습니다. 간단히 나열해보자면:
 
-그럼 어떻게 해야할까요?
+* Spread Sheet: 블로그에 대한 정보 입력
+* Github: 원 본&sdot;번역 게시글, 무결성 검증을 위한 Metadata 파일, Sitemap 파일
+* Github Action: 공짜 실행환경
+* ChatGPT: 영어 잘하는 형
+* Vercel: 무료 Sitemap 발사대
+* Blog Platforms:
+  * Tistory: 구글 검색의 GOAT
+  * Medium: 영어권 개발 플랫폼 GOAT
 
-### 해결 방안: 상호대체 여부를 명시하라.
+다시말해 테스트하기 굉장히 빡셉니다요. Github는 널널하기로 유명해서 그냥 Stub 안 만들고 작업했어요. Medium은 하루 사용량 초과로 429 던지는거 보니 Test Double이 시급하겠네요. 베타배포 후에는 테스트코드로 프로젝트를 조금 더 견고하게 만들어봐야겠습니다.
 
-사실 우리가 고민하는 내용들은 이미 **선대 개발자들이 알잘딱으로 처리해놨을 가능성이 높습니다**. 또한, 이번 케이스도 동일합니다. 각 포스트의 html head에 hreflang 태그를 삽입하면 <u>국가에 맞는 게시글을 안내해주며 중복컨텐츠 문제가 해결</u>됩니다. (명시 방식에는 [다른 방법](https://developers.google.com/search/docs/specialty/international/localized-versions?hl=en&visit_id=638593952115326122-859270653&rd=1)도 존재함)
+## 3\. 늘 후회하지만 습관화는 안되는 것들 (고쳐야 할 약점)
 
-![](https://blog.kakaocdn.net/dn/cetFp9/btsI6TDnYjZ/ecm8XMOuyQCjE6Afy8NuJ1/img.png)
+1. 코드짜기전에 시뮬레이션 더 많이 돌려보기
+2. 새로접하는 작업하는 것들은 방법 다양하게 찾아보고 가장 효율적인 것 생각하기.
+   * Tistory RE한건 너무 무식한 방식이었다고 생각합니다요. (Reverse Engineering인지도 모르겠음.)
+3. 끝까지 테스트 작성하기.
+   * 테스트 작성하기 힘들다면 책임분리가 잘못된 것이라는 것을 또다시 느꼈습니다.
 
-요로코롬 넣어주면 굴루굴루에서 처리해줌.
+---
 
-게시글 작성할 시에 html 편집모드로 script 태그를 추가하면 됩니다.
+## 마치며
 
-```
-<script>
-document.addEventListener("DOMContentLoaded", function() {
-    var link = document.createElement('link');
-    link.rel = "alternate";
-    link.hreflang = "ja";
-    link.href = "https://example.com/ja";
-    document.head.appendChild(link);
-});
-</script>
-```
-
-### 내 취향의 기능 구현
-
-* **접근성은 엑셀이 최고**: 모바일에서도 데이터를 조작할 수 있도록 구글 스프레드시트를 통해 데이터를 정리할 것입니다. 엑셀과 DB의 데이터를 CronJob을 사용하여 지속적으로 동기화할거에요.
-* **확장성은 markdown이 최고**: html의 ui는 css 의존하므로 너무 의도치 않은 ui 결과가 나올 수 있습니다. 많은 글로벌 블로그에 배포하기 위해서는 github에서 markdown으로 관리 할 것입니다.
-* **서버리스로 작업**: 편해지고자 하는 작업인데 서버는 관리하기 귀찮고 비용도 발생할거에요. 모든 처리는 Github Action으로 처리할게요.
-
-## 아키텍처는 이렇습니다.
-
-![](https://blog.kakaocdn.net/dn/dYEaUf/btsI8JHs3IP/UhtzoHZaXrAqI07gNqrrN0/img.png)
-
-특히 마음에 드는 점은 추후에 **다른 블로그 플랫폼으로의 마이그레이션에도 열려있습니다**. 그래서 대표적으로 필요한 기능은 이렇습니다.
-
-1. 티스토리 게시글 md 변환
-2. ChatGPT 변역 기능
-3. 블로그 플랫폼 별 게시글 업로드 기능 구현
-4. 게시글 &harr; 엑셀 동기화*(조작할 필요은 적을 수록 가장 이상적)*
-
-출시되면 많은 관심 바랍니다!!  
-(9월 중 오픈소스로 출시 예정)  
-[\[개발블로그 계왕권\] 프로젝트 출시 알림 신청](https://forms.gle/rQvbYyTxoeLdowmi6)
-
-[\[개발블로그 계왕권\] 프로젝트 출시 알림 신청
-
-\- 개인정보 수집 항목: 이메일 - 개인정보 수집 목적: 서비스 출시 시 알림 응답 제출 시 개인정보 수집에 동의하는 것으로 간주합니다.
-
-docs.google.com](https://forms.gle/rQvbYyTxoeLdowmi6)
-
-혹시 좋은 아이디어 있으면 위 구글 폼에 의견 달아주시면 감사하겠습니다.
-
-![](https://blog.kakaocdn.net/dn/pDuYs/btsI9GXo1z5/orkbQ0pkKu1KNxiZuFmkMK/img.webp)
-
-개발자들아! 내게 아이디어를 조금만 나눠줘!!
-
-![](https://blog.kakaocdn.net/dn/Egome/btsI83MvG8b/f19SGQkAV6Jcp9nAfFUWEk/img.png)
-
-감사합니다!!!
+내일 중에 베타버전 출시하겠습니다. 베타버전 배포가 끝나면 본격적인 취준을 시작해야겠네요..ㅋㅋ
 
