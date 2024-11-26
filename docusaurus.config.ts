@@ -82,6 +82,11 @@ const config: Config = {
           position: 'left'
         },
         {
+          to: '/projects',
+          label: '프로젝트',
+          position: 'left',
+        },
+        {
           to: '/activities',
           label: '활동',
           position: 'left',
@@ -96,12 +101,6 @@ const config: Config = {
           label: '블로그',
           position: 'left',
         },
-        // {
-        //   to: '/projects',
-        //   label: '프로젝트',
-        //   position: 'left',
-        // },
-        
         // { // 주요 행사
         //   to: '/recruit',
         //   label: '2023 신입회원 모집중!',
