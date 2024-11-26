@@ -1,80 +1,41 @@
 ---
 authors: puleugo
-date: Wed, 13 Nov 2024 08:57:11 +0900
+date: Thu, 14 Nov 2024 08:52:43 +0900
 ---
 
-# [계왕권 출시] 당신의 블로그 가치를 44배 향상시켜주는 서비스
+# 가장 후회하는 블로그 커스터마이징
 
-> 당신의 게시글을 가치를 44배 향상시켜주는 서비스
+금년 [4월 즈음에 다크모드를 대응하여 이미지 색상을 반전하는 기능](https://ko.puleugo.dev/190)을 구현하였었는데요.
 
-* [초기 기획 글](https://puleugo.tistory.com/206)
-* [베타버전 개발기](https://puleugo.tistory.com/210)
-* [공식 문서](https://kaio-ken.gitbook.io/kaio-ken-docs)
-* [깃헙 레퍼지토리](https://github.com/puleugo/kaio-ken)
-* [100% AI, 적용 결과물](https://en.puleugo.dev/)
+[css를 활용한 다크모드 이미지 자동 대응
 
-## 프로젝트 소개
+소개다음 영상을 보시면 무슨 말인지 쉽게 이해할 수 있습니다.아이디어https://github.com/joonas-yoon/boj-extended?tab=readme-ov-file GitHub - joonas-yoon/boj-extended: 백준 온라인 저지(BOJ)를 확장된 기능과 함께
 
-계왕권은 자동화 및 게시글 번역 배포 서비스입니다. 대표적 선진국 9개국의 인구수는 한국의 약 44배이므로, 단순 계산으로 당신의 블로그는 44배 이상의 영향력을 얻을 수 있습니다.
+ko.puleugo.dev](https://ko.puleugo.dev/190)
 
-![](https://blog.kakaocdn.net/dn/dOyszI/btsKEGBAQWa/kQIQ0Ivamgbh5lS9SXjUp1/img.png)
+다크모드를 굉장히 좋아하는 사람 중 하나로써 제 블로그는 다크모드에 최적화된 환경으로 만들고 싶었습니다. 이는 현재 가장 후회하는 블로그 커스터마이징입니다.
 
-1500 조회수
+# 재앙의 시작
 
-## 왜 개발하게 되었는가?
+뭔가 틀렸다는 것을 느낀 것은 [동아리 사이트에 블로그 탭](https://www.megabrain.kr/blog)을 구현할 때 였습니다. 크롤링한 게시글의 이미지가 White Mode에서 볼 수 없는 문제가 발생했습니다. 색상 반전이 되지 않아, 이미지도 하얗고 배경도 하야니까요.  
+이는 곧 콘텐츠가 블로그의 css에 의존하게 되는 기이한 현상이 발생합니다.
 
-저는 프로그래밍을 시작한 이후부터 국내 시니어 개발자들의 경험을 얻기 위해 강연, 스터디를 참여하고자 노력했습니다. 그분들의 공통된 조언이자 후회는 프로그래밍에 쏟은 노력을 외국어 학습에 쏟았다면 더 많은 기회를 얻을 수 있었을 것이라는 것이었습니다.  
-구글, 페이스북 같은 IT 기업의 헤드헌터에게 연락이 오더라도 영어능력의 부재로 인해 기회를 포기하는 경우도 있었으며, 본인들의 역량을 그들에게 전달하지 못하는 것이 가장 큰 아쉬움이었습니다.  
-외국어 공부를 대신해주는 것은 아니지만 **비슷한 기회를 쉽게 창출할 수 있는 프로젝트**입니다.
+이는 계왕권을 사용하여 다른 플랫폼에 글을 배포하게 되도 동일한 문제가 발생합니다.  
+아래는 Medium 플랫폼에 배포한 이미지입니다.
 
-> '계왕권'은 선배들에게 받은 조언 통해  
-> 노력을 배로 향상시켜주는 프로젝트입니다.
+![](https://blog.kakaocdn.net/dn/DU04n/btsKI4h3IP2/7TXePxaaZt1vEuUlxltHUk/img.png)![](https://blog.kakaocdn.net/dn/I5K8u/btsKIOT4nFk/KKdwKHNyUGESZDOSCy3e80/img.png)
 
-### 번역 결과물 미리보기
+Medium에 동일한 글을 배포하면 이미지가 안보이는 현상 발생
 
-비교해보기  
-[원글](https://ko.puleugo.dev/206) | [번역글](https://en.puleugo.dev/your-blog-can-use-kaio-ken-fb6c4d6a15d7)
+"뭐.. 다크모드로 보면 되겠네."라고 생각하셨겠다면 Medium은 White Mode만 제공합니다. 우측은 Dark Mode Reader라는 구글 확장프로그램으로 CSS를 다크모드처럼 변경한 화면입니다.
 
-수상할 정도로 높은 번역 퀄리티
+정상적인 방법으로는 이미지를 볼 수 없습니다..
 
-![](https://blog.kakaocdn.net/dn/bTpfRC/btsKEIMVBgY/4JRIXpWUBUYDVtvwxThAvk/img.png)
+# 안하느니 못했나?
 
-퀄리티 높은 번역 게시글
+![](https://blog.kakaocdn.net/dn/blNcdo/btsKHNID2k4/Q1kQpKDuq2ZNH2RfUKh34k/img.jpg)
 
-[공식 문서](https://kaio-ken.gitbook.io/kaio-ken-docs)
+세상에 그런일이 어딨습니다. 이게 다 경험이니까요.
 
-[소개 | Kaio-ken Docs
-
-Last updated 8 minutes ago
-
-kaio-ken.gitbook.io](https://kaio-ken.gitbook.io/kaio-ken-docs)
-
----
-
-## QnA
-
-### 무료로 사용할 수 있나요?
-
-네, Github Action 통해서 사용하실 수 있습니다.
-
-### 돈이 조금이라도 들 수 있나요?
-
-네, ChatGPT API를 통해 번역하기 때문에 API 이용비가 발생할 수 있습니다.
-
-### 이 서비스를 쓰면 조회수를 제외하여 구체적으로 어떤 이익이 있을 수 있을까요?
-
-게시글 하단에 게시글 주제에 관련된 프로모션 링크를 삽입하는 방식으로 수익창출을 하려고합니다.  
-현재 기획으로는 아마존, 이베이, 알리 익스프레스, 클릭뱅크, 애플 어필리에이트, 쿠팡 파트너스가 있습니다. 금전적인 이익보다도 본인의 프로젝트나 PR이 해외에도 노출될 수 있는 것이 가장 큰 메리트입니다.
-
-### 저도 기여할 수 있나요?
-
-환영합니다. 현재 영어 블로그(Medium)밖에 지원이 안되므로 일어, 중국어, 인도어 등 여러 블로그의 전략패턴의 코드를 작성하는 것을 권장드립니다.
-
-[https://github.com/puleugo/kaio-ken](https://github.com/puleugo/kaio-ken)
-
-[GitHub - puleugo/kaio-ken: Automated Translation Development Post Distribution Application
-
-Automated Translation Development Post Distribution Application - puleugo/kaio-ken
-
-github.com](https://github.com/puleugo/kaio-ken)
+White Mode 기반으로 색반전 CSS를 변경하고 과도하게 꺠지는 이미지를 변경해야겠습니다.
 

@@ -1,69 +1,64 @@
 ---
 authors: puleugo
-date: Sun, 17 Nov 2024 21:44:55 +0900
+date: Sun, 24 Nov 2024 18:44:09 +0900
 ---
 
-# 이미지 로드 속도 향상하기
+# 상호 존중하는 PR 만들기
 
-## 개요
+본 게시글은 주인공들의 이야기, [이한결](https://www.linkedin.com/in/hanlee0707/)님과의 인터뷰 내용을 참고하여 작성했습니다.  
+[https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI](https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI)
 
-* [waktaverse.games](https://waktaverse.games/) 웹 사이트의 이미지 로드 성능 개선을 수행했다.
+Full Video
 
-## 너무 느려요. 개선해주세요.
+## 도입
 
-![](https://blog.kakaocdn.net/dn/toR2D/btsKKFR12jJ/9FOuaq7CvxG2NGifV90thK/img.png)
+최근 팀원에게 아래와 같은 코멘트를 받았습니다.
 
-상혁이가 Waktaverse 이미지 로드 속도가 느리다고 문의메일을 보냈다.
+> 하나의 PR에 코드가 너무 많아요.  
+> 다음에는 조금 작은 단위로 PR을 만들어주세요.
 
-동아리 친구에서 이미지 성능개선 작업 해보고싶다고 말하니까, 내가 속한 팀에 메일을 보내줬다.
+이한결님과의 인터뷰에는 아래와 같은 답이 있었습니다.
 
-## 어느정도로 느린가?
+* 가독성 좋은 PR을 만드는 방법
+* 가독성 좋은 Commit을 만드는 방법
 
-![](https://blog.kakaocdn.net/dn/l6QRJ/btsKM5IieFD/43aiQCyAsjGDIvFpvnJKyK/img.png)![](https://blog.kakaocdn.net/dn/1DFPs/btsKMM93RNv/1R5zKSyHVIQRIkg4jQ4nPK/img.png)
+## 무엇이 상호 존중하는 PR인가?
 
-Slow 4G: 28.54 s, Fast 4G: 5.88 s
+무엇이 좋은 PR일까요? 예를 들면 "이거 바로 Approve해도 되겠는데?"라는 말이 나올만한 PR이 좋다고 할 수 있겠습니다.  
+좋은 PR을 글쓰기로 비유하면 PR은 문단, Commit은 문장이라고 생각해볼 수 있습니다. 가독성 좋은 글은 하나의 문단에는 하나의 주제, 하나의 문장에는 하나의 내용 만으로 구성됩니다. 글쓰기라고 생각하시면 아래 내용을 이해하기 편할 것입니다. 다시 말하면 문단(주제)이기에 Refactor PR과 Feature PR은 분리하는 것이 좋은 PR입니다.
 
-Chrome Browser의 Performance 기능을 활용하여 성능을 측정해보았다. 네트워크/메모리 성능을 제한하여 측정해볼 수 있으므로 성능 개선 필요 여부를 확인하는데 추천하는 방법이다.
+### 커밋에 흐름 만들기
 
-LCP(가장 큰 콘텐츠 페인트) 소요 시간을 측정했다.
+작업에 들어가기 전에 항상 체크포인트를 만들어야 합니다. 이 작업에 약 2000줄의 코드 변경이 필요하다고 가정했을 때 100줄 단위로 나누었을 때 어떤 흐름이 가장 안전하고 자연스러운지를 미리 설계하는 것이 중요합니다. 나뉜 커밋(작업)들 하나하나가 각 체크포인트라고 부를 수 있겠습니다.  
+팀원이 쌓인 커밋들을 봤을 때 곧바로 이해할 수 있도록 가독성 좋게 구성합니다.
 
-* Slow 4G: 28.54s
-* Fast 4G: 5.88s
+### 하나의 커밋도 읽기 쉽게
 
-참고로 2.5초 이하가 GOOD이다.
+한결님은 이를 약 400-500줄 정도로 유지하려고 하십니다. 융통성 있게 하면됩니다. 1000줄 이하라면 더 커지더라도 큰 문제는 없습니다.  
+하지만, <u>테스트코드는 필수적</u>입니다. 한결님이 작성하신 500줄의 코드 변경은 아래와 같이 구성됩니다.
 
-## 해결하기
+* 100줄(20%): 기능 변경
+* 400줄(80%): (최대한 많은) 테스트 코드
 
-저희 팀은 Cloudflare CDN을 사용하고 있습니다. 사용하시는 CDN이 다르다면 아래 내용 중 무엇이 왜, 필요한 지만 참고해주시기 바랍니다.
+> 이러면 외부 클래스/함수 의존성 때문에 테스트가 실패하지 않나요?
 
-### 1\. 큰 이미지는 압축합시다.
+(영상에서는 간략하게 언급하고 지나갔지만) 기능없는 빈 메서드를 만들고, '이후 기능이 구현되었을 때 이러한 모습이겠지.' 를 생각하고 테스트를 작성합니다.
 
-흔히 사용하는 포맷은 png, jpg가 있지만, 웹 성능 향상을 위해 jpg보다 더 효율적인 압축 형식이 있습니다. 주로 WebP, AVIF가 있습니다.
+## 상호 존중하지 않는 PR은 Moloco 수석 개발자도 어려워한다.
 
-Cloudflare에서 동일 이미지 URL에 대한 원본 이미지에 대한 압축본을 응답해주는 [Cloudflare Polish](https://developers.cloudflare.com/images/polish/) 기능이 존재합니다.
+1,000줄의 코드를 한결님에게 보낸다면 한결님은 다음과 같이 말씀하신다고 합니다.
 
-[Cloudflare Polish | Cloudflare Images docs
+> 나는 너의 코드를 보고 문제없다고 말할 자신이 없다..  
+> 너무 많은 Change를 한번에 넣었기 때문에.
 
-Cloudflare Polish is a one-click image optimization product that automatically optimizes images in your site. Polish strips metadata from images and reduces image size through lossy or lossless compression to accelerate the speed of image downloads.
+Unit Test가 이미 많이 작성되어 있다면 이를 쪼개서 보내달라고 부탁합니다.
 
-developers.cloudflare.com](https://developers.cloudflare.com/images/polish/)
+## 팀을 위한 좋은 습관
 
-### 2\. 한번 받아온 이미지는 캐싱합시다. Cache-Control
+* 장주영: "상대의 시간을 존중하는 좋은 습관같다."
+* 이한결: "그것도 맞지만, 이는 상호 존중이다. 내가 상대를 존중했을 때 <u>이 존중이 나에게 돌아올 확률이 크다.</u>"
 
-현재 페이지를 새로고침할 경우 이미 로드한 이미지를 다시 불러오는 문제가 존재합니다. 이때 **HTTP 응답 헤더 Cache-Control**을 사용할 수 있습니다.
+## 마치며
 
-Cache-Control은 이미 수신한 리소스의 유효 시간이 지나기 전이라면, 브라우저가 서버로 새로운 요청을 보내지 않고 캐시로부터 리소스를 읽어와서 사용합니다.
-
-![](https://blog.kakaocdn.net/dn/bRpKya/btsKLd8UzDV/GrqY61DcMwOyPxLQkbdmb0/img.png)
-
-리소스가 남아있기에 캐시로부터 리소스를 가져옴.
-
-## 개선결과
-
-![](https://blog.kakaocdn.net/dn/RljS4/btsKLwUETOL/K90VlLUlfyKL0TQXkmMrG0/img.png)![](https://blog.kakaocdn.net/dn/wPgG0/btsKM2Sk16G/JukPyHFUsuBsIQVkfIsf6K/img.png)
-
-Slow 4G: 8.24 s, Fast 4G: 2.39 s
-
-'어떻게 해야겠다'는 명확했습니다.  
-Cloudflare가 이렇게 편한줄 알았더라면 훨씬 더 빠르게 작업에 들어갈걸 그랬다.
+주인공들의 이야기는 학생 개발자로서 배워가기 좋은 채널이다. 누구나 잘하고 싶은 욕구가 있지만 경험없이 노력만으로는 잘하기 힘든 것들이 있다. 프로 개발자들에게 이러한 경험을 배워갈 수 있다는 것 자체가 축복받은 사회다.
 
