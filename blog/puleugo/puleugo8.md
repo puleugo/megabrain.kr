@@ -10,7 +10,7 @@ date: Sun, 17 Nov 2024 21:44:55 +0900
 |||
 |---|---|
 |**문제**|Waktaverse.games 사이트의 이미지 로딩 속도가 느려 사용자 경험에 부정적 영향을 미치고 있었습니다.특히 네트워크가 느린 환경에서는 LCP(Largest Contentful Paint) 시간이 권장사항인 2.5를 초과하여, Fast 4G 환경에서는 4.88초, Slow 4G 환경에서는 28.54초가 소요됐습니다.|
-|**해결방안**|이미지 로딩 성능을 개선하기 위해 Cloudflare를 활용하여 다음과 같은 조치를 취했습니다. WebP 형식으로 압축된 이미지 캐시를 응답했으며 페이지 새로고침 시 서버로 재요청하는 문제를 해결하기 위해 Cache-Control 헤더를 추가했습니다.개선 결과:<ul style="list-style-type: disc;" data-ke-list-type="disc"><li>Fast 4G 환경: 5.88초 &rarr; 2.39초 (약 59.35% 개선)</li><li>Slow 4G 환경: 28.54초 &rarr; 8.24초 (약 71.13% 개선) </li></ul>|
+|**해결방안**|이미지 로딩 성능을 개선하기 위해 Cloudflare를 활용하여 다음과 같은 조치를 취했습니다. WebP 형식으로 압축된 이미지 캐시를 응답했으며 페이지 새로고침 시 서버로 재요청하는 문제를 해결하기 위해 Cache-Control 헤더를 추가했습니다.개선 결과:\- Fast 4G 환경: 5.88초 &rarr; 2.39초 (약 59.35% 개선)\- Slow 4G 환경: 28.54초 &rarr; 8.24초 (약 71.13% 개선)|
 
 * [waktaverse.games](https://waktaverse.games/) 웹 사이트의 이미지 로드 성능 개선을 수행했다.
 
