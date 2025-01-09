@@ -1,365 +1,76 @@
 ---
 authors: puleugo
-date: Mon, 16 Sep 2024 15:34:21 +0900
+date: Mon, 11 Nov 2024 12:31:32 +0900
 ---
 
-# 괴물 메서드 리팩터링과 성능개선하기 | 안전하게 리팩터링하기
+# [계왕권 프로젝트] 베타버전 개발기
 
-## 개요
+## 길고 험난했던 베타버전 출시
 
-|||
-|---|---|
-|**문제**|저희 팀은 Spreadsheet를 어드민 페이지로 활용하여 데이터를 관리하고 있습니다. 서비스 초기에는 빠른 콘텐츠 수집과 서비스 개발이 가능했지만, 서비스 규모가 커짐에 따라 관리하는 도메인과 필드 수가 증가하여 동기화 메서드가 복잡해졌습니다. 테스트 코드의 부재로 수정 시 부담이 너무 커졌습니다.|
-|**해결방안**|[테스트 환경을 구축](https://ko.puleugo.dev/201)하고 기존 코드를 분석하여 테스트하기 쉬운 코드로 리팩터링했습니다.테스트라는 개념을 학습하기 위해 Test Double, Domain Model에 대한 게시글을 번역하고 정리하며 학습하였습니다. 테스트 후 **문제없이 실서버에 배포**되었습니다.|
+![](https://blog.kakaocdn.net/dn/pnKrz/btsKDPF1s8X/6wbrYRDZAuxOMbmmorWryk/img.png)
 
-[발표 영상](https://youtu.be/C2ns5fGUxz8)
+일일 1389 커밋
+
+꽤나 막혔던 프로젝트였습니다. 새로운 프로젝트를 하는게 오랜만인지라 너무 추상적인 계획만 세우고 작업을 들어가서 구체화 과정에서 멀리 돌아간 작업들이 굉장히 많네요. 대표적인 것들만 정리해보겠습니다.
+
+## 1\. 플랫폼에 의존하는 번역글 Link?
+
+처음 생각했던 번역 게시글 업로드 후 본문을 수정하여 JS Injection 방식을 사용한 Link 방식은 문제가 많았습니다.
+
+우선, <u>게시글 본문을 수정</u>해야 하는 문제가 있습니다. 대부분의 블로그 플랫폼(Medium, Dev.to, Qiita, Tistory)의 API는 게시글 수정 기능을 지원하지 않으며 수정기능을 지원한다고 하더라도 JS Injection을 막아둔 경우가 대부분이었습니다.  
+Tistory의 API를 분석하여 Reverse Engineering을 통해 HTTP 통신만을 활용하여 게시글 수정을 구현하긴하였다만. 이는 너무 <u>난이도가 높았습니다</u>. 사실 Medium이 GraphQL 방식으로 통신하는 것을 보고 포기했습니다.
+
+이방식은 포기하기 다른방식을 찾아봤습니다.
+
+### 다행히도 Sitemap을 통해서도 Link가 가능하다.
+
+「[구글에게 페이지의 번역본에 대해 알려주기](https://developers.google.com/search/docs/specialty/international/localized-versions?hl=en&visit_id=638593952115326122-859270653&rd=1)」를 읽어보면 다른 방식들도 있습니다.
+
+1. ~~HTML tag에 첨부.~~ (실패)
+2. ~~HTTP Header에 첨부.~~ (플랫폼의 응답을 조작하는 방법이 떠오르지 않아 패스)
+3. Sitemap에 명시하기. &larr; 이 친구에 대해 알아봅시다.
+
+Sitemap는 구글 크롤러에게 사이트의 페이지, 영상, 기타 파일에 대한 관계를 알려주기 위해 제공하는 파일입니다. 예를 들어 아래와 같은 정보를 제공할 수 있습니다:
+
+* <u>번역본 링크</u>
+* 게시글의 마지막 수정일, 제목, 우선순위
+
+굉장히 재미있는 파일입니다. Tistory에서도 제공합니다.  
+[https://puleugo.tistory.com/sitemap](https://puleugo.tistory.com/sitemap)
+
+그럼 문제를 정의하면 '티스토리의 사이트 맵을 어떻게 수정하냐?' 일까요? 잠깐.. 아니죠. 문제는 '<u>구글에게 제공할 내 블로그의 Sitemap을 작성하는 방법입니다.</u>'  
+문제를 다시 정의하니 '<u>개인 도메인을 발급하여 블로그와 연결하는 방법을 떠올렸습니다</u>.' 개인도메인이라면 Sitemap을 마음대로 수정할 수 있을 것 같았거든요. 이는 정답이었습니다.
+
+[https://www.puleugo.dev/sitemap.xml](https://www.puleugo.dev/sitemap.xml)
+
+Vercel을 활용하여 Github Repository에 업로드된 sitemap.xml을 도메인에 연결하였습니다. 이러면 Free + Serverless + File System으로 작업 가능해졌네요! (5분정도면 작업가능합니다.)
+
+## 2\. 너무너무 많은 외부의존성
+
+본 프로젝트는 프로젝트 규모 대비 외부의존성이 굉장히 많습니다. 간단히 나열해보자면:
+
+* Spread Sheet: 블로그에 대한 정보 입력
+* Github: 원 본&sdot;번역 게시글, 무결성 검증을 위한 Metadata 파일, Sitemap 파일
+* Github Action: 공짜 실행환경
+* ChatGPT: 영어 잘하는 형
+* Vercel: 무료 Sitemap 발사대
+* Blog Platforms:
+  * Tistory: 구글 검색의 GOAT
+  * Medium: 영어권 개발 플랫폼 GOAT
+
+다시말해 테스트하기 굉장히 빡셉니다요. Github는 널널하기로 유명해서 그냥 Stub 안 만들고 작업했어요. Medium은 하루 사용량 초과로 429 던지는거 보니 Test Double이 시급하겠네요. 베타배포 후에는 테스트코드로 프로젝트를 조금 더 견고하게 만들어봐야겠습니다.
+
+## 3\. 늘 후회하지만 습관화는 안되는 것들 (고쳐야 할 약점)
+
+1. 코드짜기전에 시뮬레이션 더 많이 돌려보기
+2. 새로접하는 작업하는 것들은 방법 다양하게 찾아보고 가장 효율적인 것 생각하기.
+   * Tistory RE한건 너무 무식한 방식이었다고 생각합니다요. (Reverse Engineering인지도 모르겠음.)
+3. 끝까지 테스트 작성하기.
+   * 테스트 작성하기 힘들다면 책임분리가 잘못된 것이라는 것을 또다시 느꼈습니다.
 
 ---
 
-## 소개
+## 마치며
 
-안녕하세요. 왁타버스 게임즈의 백엔드 팀의 임채성입니다. 이번 글에서는 저희 팀의 오랜 과제였던 '구글 스프레드시트 동기화 메서드'의 리팩터링 과정과 성능 개선 방법을 공유하려고 합니다.
-
-## 왁타버스 게임즈와 백엔드 팀의 역할
-
-먼저 왁타버스 게임즈가 어떤 서비스인지 설명드리고 개발팀에서 달성해야하는 목표를 설명드리겠습니다. 저희 서비스는 유튜버 우왁굳의 메타버스 컨텐츠인 왁타버스의 팬 게임 &sdot; 어플리케이션 플랫폼입니다.
-
-* 팬 게임과 랭킹 그리고 도전과제 등 **다양한 기능**
-* 스프레드 시트로 어드민 페이지로 사용하기 때문에 DB와 **데이터 일관성** 제공
-* 24시간 **무중단 운영**
-* 팬 게임&sdot;어플리케이션의 랭킹과 다운로드 수 및 조회수 **통계 제공**
-
-이러한 특성들을 고려했을 때 저희팀은 B2B와 디지털 플랫폼 비즈니스로 **<u>서류작업과 파트너 팀과의 협업이 많은 팀</u>**이라고 볼 수 있습니다. (엄밀히 따지면 비상업 프로젝트이기에 비즈니스는 아닙니다.)
-
-## 스프레드 시트 데이터 동기화 메서드란?
-
-플랫폼 비즈니스에서 가장 중요한 건 콘텐츠입니다. 개발 초기부터 스프레드 시트를 사용하여 팀 간의 의존없이 콘텐츠 수집과 서비스 개발이 이루어지며 왁타버스 게임즈 서비스가 빠르게 성장할 수 있었습니다. 따라서 왁타버스 게임즈의 기반이 되는 기능이라고 볼 수 있습니다.  
-서비스의 기반이 된다는 것은 무슨 의미를 가지고 있을까요? 어떤 기능보다 먼저 개발되었으며 가장 오래된 기능이라는 의미기도 합니다. 왁타버스 게임즈는 올해로 2년차에 접어들었고, 파트너 게임도 약 200개을 넘겼습니다. 트래픽도 초창기에 비해서 훨씬 많아졌습니다. 관리하는 도메인의 추가와 시트 내 필드 수 증가로 해당 메서드를 수정 가능하도록 리팩터링해야하는 상황에 도달했습니다. 그렇다면 데이터 동기화 메서드가 어떤 상태였는지 확인해보도록 하겠습니다.
-
-### 괴물 메서드의 문제점
-
-레거시 코드 활용 전략이라는 책에서 아래와 같은 문구가 나옵니다.
-
-> 대규모 메서드는 다루기 힘든 수준이라면, 괴물 메서드는 재앙이라고 부를 만하다. 괴물 메서드는 너무 길고 복잡해서 손대고 싶지 않은 메서드를 의미한다.
-
-왁타버스 게임즈 팀을 운영된 2년동안 이 메서드에는 수많은 도메인들이 추가되었고 복잡한 조건이 추가되면서 끔찍한 괴물 메서드가 되어 있었습니다. 데이터 동기화 메서드 코드의 상황은 다음과 같았습니다.
-
-* 코드 길이가 600줄을 넘음.
-* 테스트 코드가 없고, 수정 시 큰 부담을 줌.
-* 코드의 동작 범위를 완벽하게 이해하는 사람이 없음.
-* 복잡한 조건이 계속 추가되며 유지 보수가 어려워짐.
-
-수정하는 입장에서 굉장히 부담스럽고 어려운 메서드입니다.  
-이제 스프레드 시트와 DB의 정보를 동기화하는 메서드를 괴물 메서드라고 부르도록 하겠습니다.
-
-## 리팩터링하기
-
-리팩터링하기 위해서는 기능의 요구사항을 쪼개서 이러한 순서의 사이클을 반복합니다.
-
-1. 분석하기
-2. 테스트코드 작성하기
-3. 리팩터링하기
-
-### 분석하기
-
-가장 중요한 부분입니다. 메서드가 어떻게 동작하는지, 어떤 부분에서 문제가 발생하는지, 이 기능이 이 메서드에 있는 것이 적절한 코드인지, 또한 기존 코드의 동작 기능인지 아니면 버그인지 분류해야합니다. 이 부분에서 중요한 것은 팀원의 코드를 분석하되 맹목적으로 믿지 않아야 합니다. 코드 내에서 버그를 발생 시킬 수 있을 것 같은 코드는 작업자분에게 여쭤보는 습관이 중요합니다.
-
-![](https://blog.kakaocdn.net/dn/toycY/btsKT3R925u/a2ecPrgW7DP3ZGnajMkZo1/img.png)
-
-간단히 살펴봤을 때 문제점은 이 모든 처리가 동기 &sdot; 블로킹으로 동작하고 있다는 것입니다.
-
-개선할 부분이 보인다고 해서 이 코드를 바로 변경할 수 없습니다. 리팩터링하는 개발자는 코드의 그 함수의 역사와 영향 범위를 모르고 수정하는게 대부분입니다. 이럴 때 필요한게 <u>안전한 리팩터링</u>입니다.
-
-### 테스트코드 작성하기
-
-리팩터링이란 함수의 결과의 변경없이 코드의 구조만을 수정하는 방식을 말합니다. 하지만 리팩터링 또한 실수할 가능성이 없지는 않습니다. 이렇게 몇백줄이 넘는 코드를 리팩터링하는 경우에는 특히 더 실수가 많을 수 밖에 없습니다. 또한 문서가 없기에 코드 내에 어떤 기능이 동작해야하는 지도 정리되어 있지 않는 상황입니다.  
-이때 적용할 수 있는 것이 테스트코드입니다. 테스트코드는 리팩터링 시에 다음과 같은 실수를 방지해줍니다.
-
-테스트코드란 정말 간단합니다. 기능이 의도대로 동작하는 지 검사해주는 역할을 합니다.
-
-```
-test('유저의 나이를 증가시킨다.', () => {
-	let user = new User({age: 1});
-	user.incrementAge();
-	expect(user.age).toBe(2); // ✅ user.age == 2
-})
-```
-
-이를 통해 리팩터링 이 정상적으로 완료되었는 지 지속적으로 확인할 수 있습니다. 하지만 몇백줄의 코드 내에 테스트해야하는 기능이 얼마나 있을까요? 굉장히 많을 것입니다. 특히 애플리케이션 외의 DB, Redis, 3rd Party API 등과 커뮤니케이션이 있는 이 함수의 경우 테스트가 더욱 복잡할 수 밖에 없습니다.  
-그렇기에 이 함수를 테스트하기 쉬운 코드로 분리해야만 합니다. 이에 필요한 코드의 테스트 가치/난이도를 시각화한 표가 있습니다.
-
-![](https://blog.kakaocdn.net/dn/xh3UB/btsKT9kxnfT/Uc1VkxmcdK7qikbpkBIntk/img.png)
-
-테스트 가치/난이도 시각화
-
-현재 리팩터링하고자 하는 코드는 테스트 가치&sdot;난이도가 높은 '복잡한 코드'에 해당합니다. 이 코드를 리팩터링하기 위해서는 도메인 모델, 의존객체가 많고 간단한 코드로 분리할 필요가 있습니다. (자세히 알아보기: [만개의 테스트를 작성하지 마라. 202번째글](https://puleugo.tistory.com/202))
-
-그리고 처음 테스트코드를 작성하는 경우에 private 메서드를 테스트하려고 하는 경우가 있는데, 이는 옳지 않는 방식입니다. 제어 가능한 영역을 추가하거나 함수를 분리하는 방식을 고려해봅시다.
-
-### 리팩터링하기
-
-잘 분리되었다면, 서비스 레이어는 간단한 코드가 되고 비즈니스의 복잡한 부분은 [도메인 모델](https://puleugo.tistory.com/204)에게 할당되게 됩니다.
-
-```
-// Application Service: 계좌 출금 예제
-private TakeMoney(amount: number): void {
-	if(!this.atm.canTakeMoney) { // 인출이 가능한 지 확인한다.
-		throw AtmHasNotEnoughMoney('인출 불가');
-	}
-	const amountWithComission = this.atm.calculateAmountWithComission(amount); // 수수료 포함 금액을 계산한다.
-	this.paymentGateway.chargePayment(amountWithComission); // 금액을 청구한다.
-	this.atm.takeMoney(amount); // 인출한다.
-	this.repository.save(this.atm); // 저장한다.
-}
-```
-
-간단히 요약하면 다음과 같이 역할이 분리됩니다:
-
-* 도메인 레이어: 모든 의사 결정자
-* 서비스 레이어: 도메인 레이어의 의사를 집행하는 집행자
-
-이제 리팩터링을 수행해보겠습니다.
-
-## 리팩터링 적용하기
-
-### 1\. 도메인 모델로 분리하기
-
-저는 총 3가지 도메인 모델을 구현하였습니다.
-
-* Row(행): CSV 1ROW -> JSON, JSON -> DB QUERY, Validate, Numbering etc
-* Rows(행의 1급 콜렉션) -> FILTERING, UPSERT, etc
-* SpreadSheet(스프레드 시트) -> FULL CSV ROW -> Rows Array(3차원 배열)
-
-![](https://blog.kakaocdn.net/dn/CZyyW/btsKVab7vyy/AB1q7zTdSso4UlYNPwQ6ak/img.png)
-
-다음과 같이 사용할 수 있습니다.
-
-```
-export interface SheetDto // DTO 정의
-{
-	[SheetEnum.GAME]: Rows<GameRow>;
-	[SheetEnum.APP]: Rows<AppRow>;
-	// ...
-}
-
-// 시트 데이터 가져오기
-function async getSheetData(sheetRange: Set<SheetEnum>): Promise<SheetDto> 
-{
-	const sheet = new SpreadSheet();
-    
-    // 요청된 시트 범위가 없다면 초기값 반환
-	if (sheetRange.size === 0)
-		return sheet.values;
-
-	const rawRows = await this.googleService.getRawSheet(this.sheetId, sheetRange); //   원시값 요청
-	return sheet.fillRaws(rawRows).value; // 원시값을 가공하여 반환
-}
-
-// 메서드 사용
-const {
-	GAME: gameRows,	//   게임 행 데이터
-	APP: appRows,	//   어플리케이션 행 데이터
-} = this.getSheetData(new Set([SheetEnum.ALL]));
-console.log(typeof gameRows); // Rows<GameRow>
-console.log(typeof appRows);  // Rows<AppRow>
-
-gameRows.filterBy({edited: true});	// 수정된 데이터를 필터링
-gameRows.upsert(gameEntities);		// 데이터가 존재하면 업데이트, 존재하지 않으면 삽입
-this.googleService.updateSheet(gameRows); // 구글 시트에 동기화
-```
-
-### 2\. 쿼리 로직은 영속성 레이어로 분리하기
-
-기존 레거시 코드에서 존재하던 문제점은 비즈니스 레이어에서 쿼리를 작성하는 행위입니다.
-
-![](https://blog.kakaocdn.net/dn/bfAXLk/btsKTSwKRVU/1ESghv4KIeFnG5yqaMUFyk/img.png)
-
-Layered Architecture 4Layer
-
-다음의 예시와 같이 쿼리를 영속레이어로 이동시켰습니다.
-
-```
-class UserService {
-	constructor(
-		@InjectRepository(UserEntity)
-		private readonly ormRepository: Repository<UserEntity>, // 1️⃣ Framework에서 생성한 Repository의 인스턴스를 주입받은 변수
-		@Inject(UserRepository)
-		private readonly userRepository: UserRepository, // 2️⃣ 내가 등록한 UserRepository의 인스턴스를 주입받은 변수
-	) {}
-
-	addUserAge(userId: number) 
-	{
-		this.ormRepository.createQueryBuilder() // ❌ 영속 레이어(UserRepository)에 작성하세요.
-			.update().set({ age: () => 'age + 1' })
-			.where({ id: userId })
-			.excute();
-	}
-    
-	refactoredAddUserAge(userId: number) 
-	{
-		this.userRepository.addUserAge(userId); // ✅ 복잡한 처리는 영속 레이어가 처리하자.
-	}
-}
-
-@Injectable()
-class UserRepository {
-	constructor(
-		@InjectRepository(UserEntity)
-		private readonly ormUserRepository: Repository<UserEntity>,
-	) {}
-    
-	addUserAge(userId: number)
-	{
-		this.ormRepository.createQueryBuilder()
-			.update().set({ age: 'age + 1' })
-			.where({ id: userId })
-			.excute();
-	}
-}
-```
-
-### 리팩터링 결과
-
-#### 폴더 구조
-
-```
-wt-games:
-├─sheet
-│ ├─sheet.module.ts
-│ ├─sheet.controller.ts
-│ ├─sheet.service.ts	# ⭐ 600 -> 200 lines
-│ └─/domain				# ⭐ NEW
-│   ├─spread-sheet.ts
-│   ├─rows.ts
-│   ├─row.ts
-│   ├─game-row.ts
-│   ├─application-row.ts
-│   └─etc-row.ts
-│
-├─game
-│ ├─game.module.ts
-│ ├─game.service.ts		# 500 -> 300 lines
-│ └─game.repository.ts	# ⭐ NEW
-│
-├─application
-│ ├─application.module.ts
-│ ├─application.service.ts		# 500 -> 300 lines
-│ └─application.repository.ts	# ⭐ NEW
-...
-```
-
-### 메서드 구조
-
-```
-async private syncGame(gameRows: Rows<Game>): Promise<void>
-{
-	// 1️⃣ DB에 동기화
-	const deletedCount = await this.gameRepo.deleteExcludeBy({ids: gameRows.ids});
-	// 2️⃣ SpreadSheet에 데이터 동기화
-	const editedGamesFromDb = await this.gameRepo.findEditedGames();
-	gameRows.syncWithDbChanges(editedGamesFromDb);
-
-	// 3️⃣ DB에 반영
-	const gameEntities = gameRows.toEntities;
-	await this.gameRepo.upsertMany(gameEntities);
-
-	// 4️⃣ Spreadsheet에 반영
-	const updatedGameRows = gameRows.updatedRows;
-	const updatedRowInfos = updatedGameRows.toRowInfos;
-	await this.googleService.updateGoogleDocument(this.sheetId, updatedRowInfos);
-}
-```
-
-이와 같은 방식으로 리팩터링해줍니다. 복잡한 로직임에도 꽤나 가독성이 향상되었습니다.
-
-## 성능 개선하기
-
-### 과도한 API 호출(Excessive API Call) 개선하기
-
-![](https://blog.kakaocdn.net/dn/0874O/btsKVcOxds8/xzsMSPSWdxwthW8fDVK7a0/img.png)
-
-### BULK 처리
-
-유튜브 API 명세상 한번에 50개의 영상 데이터만 조회 가능.
-
-![](https://blog.kakaocdn.net/dn/bcUx0N/btsKTHIHiSe/e52LE3btgep2nft976vqXK/img.png)
-
-간단하게 계산해보겠습니다. 실제 동작 성능과 정확한 지표는 아니고 가정된 상황에 대한 지표임을 알립니다.
-
-#### 가정
-
-* 총 조회할 영상의 수: N = 1,000
-* 한 번의 API 호출로 조회할 수 있는 영상의 수: 50
-* 각 API 호출에 소요되는 시간: 0.5초 (네트워크 왕복 시간과 서버 응답 시간 포함)
-* API 호출의 비용: $0.01/1000회 (예시로 설정한 API 요금 기준)
-
-#### 1\. 기존 방식 (1회에 1개의 영상 조회)
-
-* API 호출 횟수: N = 1,000
-* 총 소요 시간: 1,000회 호출 \* 0.5초 = 500초
-* 네트워크 비용: 1,000회 호출 \* $0.01/1000 = $0.01
-
-#### 2\. 개선된 방식 (1회에 50개의 영상 조회)
-
-* API 호출 횟수: &lceil; N/50 &rceil; = &lceil; 1,000/50 &rceil; = 20
-* 총 소요 시간: 20회 호출 \* 0.5초 = 10초
-* 네트워크 비용: 20회 호출 \* $0.01/1000 = $0.0002
-
-|||||
-|:---:|:---:|:---:|:---:|
-|**항목**|**기존 방식**|**개선된 방식**|**개선 비율**|
-|API 호출 횟수|1,000회|20회|98% 감소|
-|총 소요 시간|500초|10초|98% 감소|
-|네트워크 비용|$0.0.1|$0.0002|98% 감소|
-
-### 동기적 처리로 인한 병목 현상(Synchronous Bottleneck)
-
-![](https://blog.kakaocdn.net/dn/cSvg64/btsKT1myCtg/Ce7uzL05k3XchFraZDvPMK/img.png)
-
-### 비동기적 처리(Asynchronous Processing)
-
-![](https://blog.kakaocdn.net/dn/bjxpyI/btsKTxGpq70/4r6HIMfUMzxBAVWwcz2bPK/img.png)
-
-이 방식을 적용해볼 때 중요한 것은 Node.js의 동작원리입니다. Node.js는 특징은 싱글스레드입니다. 데이터베이스와 논 블로킹, 비동기을 적극 사용하면서 훨씬 빠른 실행 결과를 얻을 수 있습니다.
-
-중요한 것은 Promise.all 내부의 DB 커넥션을 고유하게 제공해야합니다. 만약, 하나의 DB 커넥션만 사용한다면 해당 커넥션을 사용중인 함수가 종료될 때까지 Promise Pool에서 대기하여 결과적으로 순차실행이 되기 때문입니다.
-
-```
-async syncSheet()
-{
-	const 
-	{
-		GAME: gameRows,
-		APP: appRows,
-		GAME_GENRE: gameGenreRows,
-		APP_GENRE: appGenreRows,
-		ACHIEVE: achieveRows,
-		BANNER: bannerRows,
-		GUIDE: guideRows,
-		BADGE: badgeRows,
-	} = await this.getSheetData();
-    
-	await Promise.all
-	([
-		syncGames(gameRows, gameGenreRows),
-		syncApps(appRows, appGenreRows),
-		syncAchieves(achieveRows),
-		syncBanners(bannerRows),
-		syncGuides(guideRows),
-		syncBadges(badgeRows),
-	]);
-    
-	const images = [gameRows.allImageIds, appRows.allImageIds, achieveRows.allImageIds, bannerRows.allImageIds, badgeRows.allImageIds].flat();
-	await this.s3Service.uploadFiles(images);
-}
-```
-
-관련 실험 글 [Promise.all 과 Transactions (feat. Node.js)](https://jojoldu.tistory.com/639).
-
-### 성능 개선 결과
-
-구동 환경보다 성능이 좋은 환경에서 구동시간 결과입니다.
-
-* 실행 결과: 3s &rarr; 2.7s
-* 약 10%의 속도 개선
+내일 중에 베타버전 출시하겠습니다. 베타버전 배포가 끝나면 본격적인 취준을 시작해야겠네요..ㅋㅋ
 

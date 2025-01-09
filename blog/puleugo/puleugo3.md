@@ -1,87 +1,365 @@
 ---
 authors: puleugo
-date: Mon, 26 Aug 2024 15:29:16 +0900
+date: Mon, 16 Sep 2024 15:34:21 +0900
 ---
 
-# KAIST GDSC 해커톤 참여, 발표 회고
+# 괴물 메서드 리팩터링과 성능개선하기 | 안전하게 리팩터링하기
 
-## 참여 계기
+## 개요
 
-재밌어보였다. 새로운 사람들을 사귀고 대화좀 하고 싶었다.
+|||
+|---|---|
+|**문제**|저희 팀은 Spreadsheet를 어드민 페이지로 활용하여 데이터를 관리하고 있습니다. 서비스 초기에는 빠른 콘텐츠 수집과 서비스 개발이 가능했지만, 서비스 규모가 커짐에 따라 관리하는 도메인과 필드 수가 증가하여 동기화 메서드가 복잡해졌습니다. 테스트 코드의 부재로 수정 시 부담이 너무 커졌습니다.|
+|**해결방안**|[테스트 환경을 구축](https://ko.puleugo.dev/201)하고 기존 코드를 분석하여 테스트하기 쉬운 코드로 리팩터링했습니다.테스트라는 개념을 학습하기 위해 Test Double, Domain Model에 대한 게시글을 번역하고 정리하며 학습하였습니다. 테스트 후 **문제없이 실서버에 배포**되었습니다.|
 
-## 준비하면서
+[발표 영상](https://youtu.be/C2ns5fGUxz8)
 
-첫 해커톤 참여라 원활한 협업을 위해 보일러 플레이트 코드를 준비하려고 했다. 그러면서 '이상적인 개발자의 해커톤 준비 방법'이라는 글도 쓰고, 이전 주는 거의 해커톤 준비에만 투자했다.  
-사람들이 낯을 많이 가렸다. 소통을 위한 디스코드는 개최 일주 전부터 만들어졌는데 아무도 자기소개를 포함한 채팅 치지 않았다. 그래서 <u>분위기를 띄우고 싶어서 자기소개</u>를 길게 써봤다.
+---
 
-![](https://blog.kakaocdn.net/dn/cLahfW/btsKDcB0pj0/ma80LSdckphqJ3g68ZCMl1/img.png)
+## 소개
 
-제발.. 하트좀..
+안녕하세요. 왁타버스 게임즈의 백엔드 팀의 임채성입니다. 이번 글에서는 저희 팀의 오랜 과제였던 '구글 스프레드시트 동기화 메서드'의 리팩터링 과정과 성능 개선 방법을 공유하려고 합니다.
 
-해커톤 운영경험이 있다보니 열심히 준비하셨을 GDSC 운영진분들을 생각해서 굳이굳이 더 말눈광스럽게 작성한 것도 있다..
+## 왁타버스 게임즈와 백엔드 팀의 역할
 
-## 팀 매칭
+먼저 왁타버스 게임즈가 어떤 서비스인지 설명드리고 개발팀에서 달성해야하는 목표를 설명드리겠습니다. 저희 서비스는 유튜버 우왁굳의 메타버스 컨텐츠인 왁타버스의 팬 게임 &sdot; 어플리케이션 플랫폼입니다.
 
-팀 매칭은 GDSC 운영진에서 매칭해준다. 랜덤이지만 참가자 모두 좋은 분들이라 재미있었음.  
-우리 팀은 백엔드가 셋이었다. 나, [민주](https://velog.io/@kirby0418/posts)님, 윤정님 이렇게 백엔드가 세명이므로.. 팀 상황 상 Java로 진행됐다. (프론트는 민주님이 리드, 준비해간 Node.js Boilerplate 코드는 전혀 사용할 수 없게됐다.)  
-그리고 디자인, PPT, 기획자를 동시에 맡아주시는 우리들의 본체 성현님까지 4인팀 1팀이었다.
+* 팬 게임과 랭킹 그리고 도전과제 등 **다양한 기능**
+* 스프레드 시트로 어드민 페이지로 사용하기 때문에 DB와 **데이터 일관성** 제공
+* 24시간 **무중단 운영**
+* 팬 게임&sdot;어플리케이션의 랭킹과 다운로드 수 및 조회수 **통계 제공**
 
-## 주제와 기획
+이러한 특성들을 고려했을 때 저희팀은 B2B와 디지털 플랫폼 비즈니스로 **<u>서류작업과 파트너 팀과의 협업이 많은 팀</u>**이라고 볼 수 있습니다. (엄밀히 따지면 비상업 프로젝트이기에 비즈니스는 아닙니다.)
 
-주제는 UN의 17가지 지속 가능한 발전 목표를 충족할 수 있는 제품이었다. (개인적으로 주제가 여러개니까 기획이 까다로웠음) 다들 생각해온 솔루션이 있었지만 만장일치가 안 나왔습니다.  
-다들 기획자, 창업의 경험이 있었던지라. 까다로운 판단 기준이 있었습니다.
+## 스프레드 시트 데이터 동기화 메서드란?
 
-* 참여자들의 공감을 받을 수 있는 문제를 해결할 것
-* <u>나부터 쓸 제품을 만들 것</u>
+플랫폼 비즈니스에서 가장 중요한 건 콘텐츠입니다. 개발 초기부터 스프레드 시트를 사용하여 팀 간의 의존없이 콘텐츠 수집과 서비스 개발이 이루어지며 왁타버스 게임즈 서비스가 빠르게 성장할 수 있었습니다. 따라서 왁타버스 게임즈의 기반이 되는 기능이라고 볼 수 있습니다.  
+서비스의 기반이 된다는 것은 무슨 의미를 가지고 있을까요? 어떤 기능보다 먼저 개발되었으며 가장 오래된 기능이라는 의미기도 합니다. 왁타버스 게임즈는 올해로 2년차에 접어들었고, 파트너 게임도 약 200개을 넘겼습니다. 트래픽도 초창기에 비해서 훨씬 많아졌습니다. 관리하는 도메인의 추가와 시트 내 필드 수 증가로 해당 메서드를 수정 가능하도록 리팩터링해야하는 상황에 도달했습니다. 그렇다면 데이터 동기화 메서드가 어떤 상태였는지 확인해보도록 하겠습니다.
 
-그러다 10분을 남겨두고 정말 만족스러웠던 기획인 <u>중고서적 교환 서비스</u>를 개발하게 되었습니다.
+### 괴물 메서드의 문제점
 
-![](https://blog.kakaocdn.net/dn/cX3Qcd/btsJfpCtf51/859dBtRbFIhA2WuZvZDx21/img.png)
+레거시 코드 활용 전략이라는 책에서 아래와 같은 문구가 나옵니다.
 
-기획 발표에 띄워뒀던 플로우
+> 대규모 메서드는 다루기 힘든 수준이라면, 괴물 메서드는 재앙이라고 부를 만하다. 괴물 메서드는 너무 길고 복잡해서 손대고 싶지 않은 메서드를 의미한다.
 
-참고로 기획 발표는 2분이 주어졌으며 우리 팀은 2-3페이지의 발표자료로 발표했다.
+왁타버스 게임즈 팀을 운영된 2년동안 이 메서드에는 수많은 도메인들이 추가되었고 복잡한 조건이 추가되면서 끔찍한 괴물 메서드가 되어 있었습니다. 데이터 동기화 메서드 코드의 상황은 다음과 같았습니다.
 
-## 해커톤에서
+* 코드 길이가 600줄을 넘음.
+* 테스트 코드가 없고, 수정 시 큰 부담을 줌.
+* 코드의 동작 범위를 완벽하게 이해하는 사람이 없음.
+* 복잡한 조건이 계속 추가되며 유지 보수가 어려워짐.
 
-이번 해커톤에 참여하면서 가졌던 목표는 '좋은 사람들 많이 만나기'와 '재밌는 경험'이었다. 모두 이뤘어서 너무 좋은 경험이었다.  
-좋은 사람들 많이 만나기는 개발하며 내가 맡은 부분을 끝내면 (보통 2시간 간격정도) 다른 팀원분들과 대화를 10분정도 나눴다. <u>절반의 팀들과는 대화를 나눠본 것 같다.</u> 너무 재밌었음. 팀원들과도 여러번 같이 걸으면서 다들 갖고 있는 경험, 고민들을 공유하면서 친해졌다.
+수정하는 입장에서 굉장히 부담스럽고 어려운 메서드입니다.  
+이제 스프레드 시트와 DB의 정보를 동기화하는 메서드를 괴물 메서드라고 부르도록 하겠습니다.
 
-## 왁타버스.. 감사합니다..
+## 리팩터링하기
 
-평소 외향적인 성격이 아닌데도 이번 해커톤에서 대화를 많이해봤던 것 같다. 그 이유를 생각해보니 애초에 왁타버스 관련 개발을한다고 말하니 다른분들이 쉽게 기억해주셨던 것 같기도 하다. 멘토분들이 서로에게 왁타버스를 설명하는것부터 너무 웃겼음.
+리팩터링하기 위해서는 기능의 요구사항을 쪼개서 이러한 순서의 사이클을 반복합니다.
 
-> 버튜버 같은 걸 팀으로 운영하는거에요.  
-> ..버튜버가 뭐에요?  
-> ㅋㅋㅋㅋㅋㅋㅋㅋㅋ
+1. 분석하기
+2. 테스트코드 작성하기
+3. 리팩터링하기
 
-## 발표
+### 분석하기
 
-공업 고등학교 시절 전 몰랐어요.. 3년후에 카이스트에서 발표하고 있을지..
+가장 중요한 부분입니다. 메서드가 어떻게 동작하는지, 어떤 부분에서 문제가 발생하는지, 이 기능이 이 메서드에 있는 것이 적절한 코드인지, 또한 기존 코드의 동작 기능인지 아니면 버그인지 분류해야합니다. 이 부분에서 중요한 것은 팀원의 코드를 분석하되 맹목적으로 믿지 않아야 합니다. 코드 내에서 버그를 발생 시킬 수 있을 것 같은 코드는 작업자분에게 여쭤보는 습관이 중요합니다.
 
-![](https://blog.kakaocdn.net/dn/b0XVUF/btsJeodloNH/CIRe31JbRZ2sQ2vRKbXGk0/img.jpg)![](https://blog.kakaocdn.net/dn/cR0ymO/btsJg6autCZ/cZMgJE38DyFL158xerykDk/img.jpg)
+![](https://blog.kakaocdn.net/dn/toycY/btsKT3R925u/a2ecPrgW7DP3ZGnajMkZo1/img.png)
 
-어떻게하면 사람들 기억에 남을지에 집중하면서 발표했던 것 같습니다. 좋은 의도의 기획이지만 프로덕트에 집중하면 <u>당근같은 중고거래 플랫폼</u>과 차별점을 잘 못 느끼실 것 같기도 했고.  
-시작부터 다른 발표와는 다르게 참여형으로 진행했다.
+간단히 살펴봤을 때 문제점은 이 모든 처리가 동기 &sdot; 블로킹으로 동작하고 있다는 것입니다.
 
-### 첫번째 퀴즈
+개선할 부분이 보인다고 해서 이 코드를 바로 변경할 수 없습니다. 리팩터링하는 개발자는 코드의 그 함수의 역사와 영향 범위를 모르고 수정하는게 대부분입니다. 이럴 때 필요한게 <u>안전한 리팩터링</u>입니다.
 
-1. 밤세서 졸리시죠? 조금 재밌게 진행해보기 위해 퀴즈를 가져와봤습니다! (집중을 위한 간략 인사)
-2. 4월 4일이 뭔지 아시나요? (대부분 절대 모를 문제)
-3. ...
-4. 바로 종이 안쓰는 날입니다. 4월 14일이 블랙데이, 짜장면 먹는날인데 이건 아무도 모르시더라구용. 종이에 대한 <u>관심이 적다</u>를 말씀드리고 싶었어요..ㅋㅋ (일부러 언급)
+### 테스트코드 작성하기
 
-### 두번째 퀴즈
+리팩터링이란 함수의 결과의 변경없이 코드의 구조만을 수정하는 방식을 말합니다. 하지만 리팩터링 또한 실수할 가능성이 없지는 않습니다. 이렇게 몇백줄이 넘는 코드를 리팩터링하는 경우에는 특히 더 실수가 많을 수 밖에 없습니다. 또한 문서가 없기에 코드 내에 어떤 기능이 동작해야하는 지도 정리되어 있지 않는 상황입니다.  
+이때 적용할 수 있는 것이 테스트코드입니다. 테스트코드는 리팩터링 시에 다음과 같은 실수를 방지해줍니다.
 
-1. 그럼 이번에는 다들 쉽게 맞출 수 있는 문제(화제 전환)
-2. 여러분들이 생각하기에 "인류 역사상 가장 훌륭한 발명품은 무엇인가요?"
-3. 에어컨, 화약, 자동차, 책 등등..
-4. 다들 정답입니다. 그런데 지금까지 나온 발명품은 모두 인류의 행위를 도와주는 발명품입니다. 그런데 <u>책만 유일하게 인류의 기억을 도와주는 발명품</u>이다. 그런데 우리는 그런 <u>책을 집에 쌓아두고 방치하고 있지 않느냐?</u>
+테스트코드란 정말 간단합니다. 기능이 의도대로 동작하는 지 검사해주는 역할을 합니다.
 
-이후로는 프로덕트 설명..  
-참여자분들에게 발표평가는 좋았었지만, 심사위원, 멘토분들의 평가 반영률이 90%인지라 조금 발표방식을 바꿨으면 좋았을것 같기도 하다.
+```
+test('유저의 나이를 증가시킨다.', () => {
+	let user = new User({age: 1});
+	user.incrementAge();
+	expect(user.age).toBe(2); // ✅ user.age == 2
+})
+```
 
-## 후기
+이를 통해 리팩터링 이 정상적으로 완료되었는 지 지속적으로 확인할 수 있습니다. 하지만 몇백줄의 코드 내에 테스트해야하는 기능이 얼마나 있을까요? 굉장히 많을 것입니다. 특히 애플리케이션 외의 DB, Redis, 3rd Party API 등과 커뮤니케이션이 있는 이 함수의 경우 테스트가 더욱 복잡할 수 밖에 없습니다.  
+그렇기에 이 함수를 테스트하기 쉬운 코드로 분리해야만 합니다. 이에 필요한 코드의 테스트 가치/난이도를 시각화한 표가 있습니다.
 
-재밌있었으니 대만족입니다.. *(다음에는 Java로 된 Boileplate도 준비해가겠습니다..)*
+![](https://blog.kakaocdn.net/dn/xh3UB/btsKT9kxnfT/Uc1VkxmcdK7qikbpkBIntk/img.png)
+
+테스트 가치/난이도 시각화
+
+현재 리팩터링하고자 하는 코드는 테스트 가치&sdot;난이도가 높은 '복잡한 코드'에 해당합니다. 이 코드를 리팩터링하기 위해서는 도메인 모델, 의존객체가 많고 간단한 코드로 분리할 필요가 있습니다. (자세히 알아보기: [만개의 테스트를 작성하지 마라. 202번째글](https://puleugo.tistory.com/202))
+
+그리고 처음 테스트코드를 작성하는 경우에 private 메서드를 테스트하려고 하는 경우가 있는데, 이는 옳지 않는 방식입니다. 제어 가능한 영역을 추가하거나 함수를 분리하는 방식을 고려해봅시다.
+
+### 리팩터링하기
+
+잘 분리되었다면, 서비스 레이어는 간단한 코드가 되고 비즈니스의 복잡한 부분은 [도메인 모델](https://puleugo.tistory.com/204)에게 할당되게 됩니다.
+
+```
+// Application Service: 계좌 출금 예제
+private TakeMoney(amount: number): void {
+	if(!this.atm.canTakeMoney) { // 인출이 가능한 지 확인한다.
+		throw AtmHasNotEnoughMoney('인출 불가');
+	}
+	const amountWithComission = this.atm.calculateAmountWithComission(amount); // 수수료 포함 금액을 계산한다.
+	this.paymentGateway.chargePayment(amountWithComission); // 금액을 청구한다.
+	this.atm.takeMoney(amount); // 인출한다.
+	this.repository.save(this.atm); // 저장한다.
+}
+```
+
+간단히 요약하면 다음과 같이 역할이 분리됩니다:
+
+* 도메인 레이어: 모든 의사 결정자
+* 서비스 레이어: 도메인 레이어의 의사를 집행하는 집행자
+
+이제 리팩터링을 수행해보겠습니다.
+
+## 리팩터링 적용하기
+
+### 1\. 도메인 모델로 분리하기
+
+저는 총 3가지 도메인 모델을 구현하였습니다.
+
+* Row(행): CSV 1ROW -> JSON, JSON -> DB QUERY, Validate, Numbering etc
+* Rows(행의 1급 콜렉션) -> FILTERING, UPSERT, etc
+* SpreadSheet(스프레드 시트) -> FULL CSV ROW -> Rows Array(3차원 배열)
+
+![](https://blog.kakaocdn.net/dn/CZyyW/btsKVab7vyy/AB1q7zTdSso4UlYNPwQ6ak/img.png)
+
+다음과 같이 사용할 수 있습니다.
+
+```
+export interface SheetDto // DTO 정의
+{
+	[SheetEnum.GAME]: Rows<GameRow>;
+	[SheetEnum.APP]: Rows<AppRow>;
+	// ...
+}
+
+// 시트 데이터 가져오기
+function async getSheetData(sheetRange: Set<SheetEnum>): Promise<SheetDto> 
+{
+	const sheet = new SpreadSheet();
+    
+    // 요청된 시트 범위가 없다면 초기값 반환
+	if (sheetRange.size === 0)
+		return sheet.values;
+
+	const rawRows = await this.googleService.getRawSheet(this.sheetId, sheetRange); //   원시값 요청
+	return sheet.fillRaws(rawRows).value; // 원시값을 가공하여 반환
+}
+
+// 메서드 사용
+const {
+	GAME: gameRows,	//   게임 행 데이터
+	APP: appRows,	//   어플리케이션 행 데이터
+} = this.getSheetData(new Set([SheetEnum.ALL]));
+console.log(typeof gameRows); // Rows<GameRow>
+console.log(typeof appRows);  // Rows<AppRow>
+
+gameRows.filterBy({edited: true});	// 수정된 데이터를 필터링
+gameRows.upsert(gameEntities);		// 데이터가 존재하면 업데이트, 존재하지 않으면 삽입
+this.googleService.updateSheet(gameRows); // 구글 시트에 동기화
+```
+
+### 2\. 쿼리 로직은 영속성 레이어로 분리하기
+
+기존 레거시 코드에서 존재하던 문제점은 비즈니스 레이어에서 쿼리를 작성하는 행위입니다.
+
+![](https://blog.kakaocdn.net/dn/bfAXLk/btsKTSwKRVU/1ESghv4KIeFnG5yqaMUFyk/img.png)
+
+Layered Architecture 4Layer
+
+다음의 예시와 같이 쿼리를 영속레이어로 이동시켰습니다.
+
+```
+class UserService {
+	constructor(
+		@InjectRepository(UserEntity)
+		private readonly ormRepository: Repository<UserEntity>, // 1️⃣ Framework에서 생성한 Repository의 인스턴스를 주입받은 변수
+		@Inject(UserRepository)
+		private readonly userRepository: UserRepository, // 2️⃣ 내가 등록한 UserRepository의 인스턴스를 주입받은 변수
+	) {}
+
+	addUserAge(userId: number) 
+	{
+		this.ormRepository.createQueryBuilder() // ❌ 영속 레이어(UserRepository)에 작성하세요.
+			.update().set({ age: () => 'age + 1' })
+			.where({ id: userId })
+			.excute();
+	}
+    
+	refactoredAddUserAge(userId: number) 
+	{
+		this.userRepository.addUserAge(userId); // ✅ 복잡한 처리는 영속 레이어가 처리하자.
+	}
+}
+
+@Injectable()
+class UserRepository {
+	constructor(
+		@InjectRepository(UserEntity)
+		private readonly ormUserRepository: Repository<UserEntity>,
+	) {}
+    
+	addUserAge(userId: number)
+	{
+		this.ormRepository.createQueryBuilder()
+			.update().set({ age: 'age + 1' })
+			.where({ id: userId })
+			.excute();
+	}
+}
+```
+
+### 리팩터링 결과
+
+#### 폴더 구조
+
+```
+wt-games:
+├─sheet
+│ ├─sheet.module.ts
+│ ├─sheet.controller.ts
+│ ├─sheet.service.ts	# ⭐ 600 -> 200 lines
+│ └─/domain				# ⭐ NEW
+│   ├─spread-sheet.ts
+│   ├─rows.ts
+│   ├─row.ts
+│   ├─game-row.ts
+│   ├─application-row.ts
+│   └─etc-row.ts
+│
+├─game
+│ ├─game.module.ts
+│ ├─game.service.ts		# 500 -> 300 lines
+│ └─game.repository.ts	# ⭐ NEW
+│
+├─application
+│ ├─application.module.ts
+│ ├─application.service.ts		# 500 -> 300 lines
+│ └─application.repository.ts	# ⭐ NEW
+...
+```
+
+### 메서드 구조
+
+```
+async private syncGame(gameRows: Rows<Game>): Promise<void>
+{
+	// 1️⃣ DB에 동기화
+	const deletedCount = await this.gameRepo.deleteExcludeBy({ids: gameRows.ids});
+	// 2️⃣ SpreadSheet에 데이터 동기화
+	const editedGamesFromDb = await this.gameRepo.findEditedGames();
+	gameRows.syncWithDbChanges(editedGamesFromDb);
+
+	// 3️⃣ DB에 반영
+	const gameEntities = gameRows.toEntities;
+	await this.gameRepo.upsertMany(gameEntities);
+
+	// 4️⃣ Spreadsheet에 반영
+	const updatedGameRows = gameRows.updatedRows;
+	const updatedRowInfos = updatedGameRows.toRowInfos;
+	await this.googleService.updateGoogleDocument(this.sheetId, updatedRowInfos);
+}
+```
+
+이와 같은 방식으로 리팩터링해줍니다. 복잡한 로직임에도 꽤나 가독성이 향상되었습니다.
+
+## 성능 개선하기
+
+### 과도한 API 호출(Excessive API Call) 개선하기
+
+![](https://blog.kakaocdn.net/dn/0874O/btsKVcOxds8/xzsMSPSWdxwthW8fDVK7a0/img.png)
+
+### BULK 처리
+
+유튜브 API 명세상 한번에 50개의 영상 데이터만 조회 가능.
+
+![](https://blog.kakaocdn.net/dn/bcUx0N/btsKTHIHiSe/e52LE3btgep2nft976vqXK/img.png)
+
+간단하게 계산해보겠습니다. 실제 동작 성능과 정확한 지표는 아니고 가정된 상황에 대한 지표임을 알립니다.
+
+#### 가정
+
+* 총 조회할 영상의 수: N = 1,000
+* 한 번의 API 호출로 조회할 수 있는 영상의 수: 50
+* 각 API 호출에 소요되는 시간: 0.5초 (네트워크 왕복 시간과 서버 응답 시간 포함)
+* API 호출의 비용: $0.01/1000회 (예시로 설정한 API 요금 기준)
+
+#### 1\. 기존 방식 (1회에 1개의 영상 조회)
+
+* API 호출 횟수: N = 1,000
+* 총 소요 시간: 1,000회 호출 \* 0.5초 = 500초
+* 네트워크 비용: 1,000회 호출 \* $0.01/1000 = $0.01
+
+#### 2\. 개선된 방식 (1회에 50개의 영상 조회)
+
+* API 호출 횟수: &lceil; N/50 &rceil; = &lceil; 1,000/50 &rceil; = 20
+* 총 소요 시간: 20회 호출 \* 0.5초 = 10초
+* 네트워크 비용: 20회 호출 \* $0.01/1000 = $0.0002
+
+|||||
+|:---:|:---:|:---:|:---:|
+|**항목**|**기존 방식**|**개선된 방식**|**개선 비율**|
+|API 호출 횟수|1,000회|20회|98% 감소|
+|총 소요 시간|500초|10초|98% 감소|
+|네트워크 비용|$0.0.1|$0.0002|98% 감소|
+
+### 동기적 처리로 인한 병목 현상(Synchronous Bottleneck)
+
+![](https://blog.kakaocdn.net/dn/cSvg64/btsKT1myCtg/Ce7uzL05k3XchFraZDvPMK/img.png)
+
+### 비동기적 처리(Asynchronous Processing)
+
+![](https://blog.kakaocdn.net/dn/bjxpyI/btsKTxGpq70/4r6HIMfUMzxBAVWwcz2bPK/img.png)
+
+이 방식을 적용해볼 때 중요한 것은 Node.js의 동작원리입니다. Node.js는 특징은 싱글스레드입니다. 데이터베이스와 논 블로킹, 비동기을 적극 사용하면서 훨씬 빠른 실행 결과를 얻을 수 있습니다.
+
+중요한 것은 Promise.all 내부의 DB 커넥션을 고유하게 제공해야합니다. 만약, 하나의 DB 커넥션만 사용한다면 해당 커넥션을 사용중인 함수가 종료될 때까지 Promise Pool에서 대기하여 결과적으로 순차실행이 되기 때문입니다.
+
+```
+async syncSheet()
+{
+	const 
+	{
+		GAME: gameRows,
+		APP: appRows,
+		GAME_GENRE: gameGenreRows,
+		APP_GENRE: appGenreRows,
+		ACHIEVE: achieveRows,
+		BANNER: bannerRows,
+		GUIDE: guideRows,
+		BADGE: badgeRows,
+	} = await this.getSheetData();
+    
+	await Promise.all
+	([
+		syncGames(gameRows, gameGenreRows),
+		syncApps(appRows, appGenreRows),
+		syncAchieves(achieveRows),
+		syncBanners(bannerRows),
+		syncGuides(guideRows),
+		syncBadges(badgeRows),
+	]);
+    
+	const images = [gameRows.allImageIds, appRows.allImageIds, achieveRows.allImageIds, bannerRows.allImageIds, badgeRows.allImageIds].flat();
+	await this.s3Service.uploadFiles(images);
+}
+```
+
+관련 실험 글 [Promise.all 과 Transactions (feat. Node.js)](https://jojoldu.tistory.com/639).
+
+### 성능 개선 결과
+
+구동 환경보다 성능이 좋은 환경에서 구동시간 결과입니다.
+
+* 실행 결과: 3s &rarr; 2.7s
+* 약 10%의 속도 개선
 
