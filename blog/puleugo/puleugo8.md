@@ -1,122 +1,92 @@
 ---
 authors: puleugo
-date: Sun, 24 Nov 2024 18:44:09 +0900
+date: Sun, 29 Dec 2024 17:09:14 +0900
 ---
 
-# 상호 존중하는 PR 만들기
+# Redis는 항상 옳은가? (Redis vs Another Plans)
 
-본 게시글은 주인공들의 이야기, [이한결](https://www.linkedin.com/in/hanlee0707/)님과의 인터뷰 내용을 참고하여 작성했습니다.  
-[https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI](https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI)
+![](https://blog.kakaocdn.net/dn/vm3Pl/btsLBjHiNc1/xvEe06pj1IiEpiqQzTk1K0/img.webp)
 
-Full Video
+No Silver Bullet
 
 ## 도입
 
-최근 팀원에게 아래와 같은 코멘트를 받았습니다.
+최근 동아리원분과 캐싱 기능의 구현방식에 대해 이야기를 나누다 Redis에 대한 이야기가 나와서 정리해봅니다.  
+'Redis 도입이 항상 정답인가?'가 주제였고, 저는 **Redis를 서비스 운영 초기부터 도입하는 것은 항상 정답은 아니며 MSA를 도입, 서비스를 복수의 인스턴스로 운영할 때나 의미가 있다. 작은 서비스의 경우, 애플리케이션의 Dictionary 자료구조를 사용하는 것도 좋은 선택지다.** 라는 의견입니다.
 
-> 하나의 PR에 코드가 너무 많아요.  
-> 다음에는 조금 작은 단위로 PR을 만들어주세요.
+둘다 취준생이라 누가 옳은지는 그 자리에서 알 수 없었지만 Redis가 <u>정확히</u> 무엇인지를 조사해보고자 합니다.
 
-이한결님과의 인터뷰에는 아래와 같은 답이 있었습니다.
+---
 
-* 가독성 좋은 PR을 만드는 방법
-* 가독성 좋은 Commit을 만드는 방법
+## Redis란 무엇인가?
 
-## 무엇이 상호 존중하는 PR인가?
+단순한 Cache Server입니다. *이름도 <u>Re</u>mote <u>Di</u>ctionary <u>S</u>erver*취준하면 싹다 Redis를 사용해보라고 하는데 Redis의 대 척점은 없는지, 제목 그대로 항상 Redis는 정답일까요?
 
-상호 존중하는 PR은 읽기 좋은 PR이며 리뷰어 입장에서 "**이거 바로 Approve해도 되겠는데?**"라는 말이 나오는 것이 가장 좋습니다.  
-읽기 좋은 PR은 글쓰기를 생각하면 됩니다. 가독성 좋은 글은 다음과 같이 구성되어있습니다:
+먼저, Redis(2011년도) 이전에는 Redis 같은 서비스가 없었을까요?  
+아뇨. MemCached(2003)가 존재했으며 MemCached 이전에는 MySQL Table을 Cache처럼 사용하기도 했습니다. 아래와 같은 한계들로 인해 <u>Redis가 주류</u>가 되었습니다.
 
-* 각 문단에는 하나의 주제만 설명한다.
-* 각 문장에는 하나의 내용만 설명한다.
+* MemCached: 가볍지만 큰 서비스에서 사용하기에는 애매하다.
+  * Value의 Max Size(1mb): 단점은 아님, 가볍게 사용하는 용도로는 적합.
+  * Replication 기능 부재
+  * 다양한 데이터 타입의 부재
+* MySQL: 구현하기는 편하지만 느리며 서비스가 커지면 큰 트러블 슈팅 문제 발생.
+  * 스케일 이슈: 수평적 확장(분산 방식)에서 문제 발생함.
+  * (비교적)느린 속도
 
-PR에 적용해보면 PR에는 하나의 주제만을 Commit에는 하나의 내용만으로 구성하는 것이 가독성을 향상하는 간단한 방법입니다.
+Redis와 비교했을 떄 위와 같은 단점이 있습니다. 현실적으로 MySQL은 좋은 선택지가 아니지만 MemCached와 Dictionary 자류구조와 비교를 해보겠습니다.
 
-## 구체적으로 좋은 PR을 만드는 방법
+### Redis vs MemCached
 
-### 1\. 업무에 Check Point를 먼저 정하기
+둘 다 원격 캐시 서버입니다. 둘을 비교하면 다음과 같습니다.  
+중요한 내용은 밑줄쳐두었습니다.
 
-해결해야할 업무를 수행하기 전 미리 작업을 분리할 수 있는 단위로 쪼갭니다. 한결님의 예시:
+||||
+|:---:|:---:|:---:|
+|**기준**|**Redis**|**MemCached**|
+|**설계 철학**|<u>데이터 저장소</u>, <u>고급 캐싱 솔루션</u>|빠르고 <u>단순한 캐싱 솔루션</u>|
+|**속도**|빠름|Redis보다 더 빠름|
+|**데이터 구조 지원**|<u>다양한 자료구조 지원</u>(Array, Set, Hash, Sorted Set etc.)|Key-Value(String) Only|
+|**데이터 지속성**|<u>File 옵션 제공</u>\- RDB(Redis Database File): 주기적 데이터 스냅샷 저장\- AOF(Append-Only FIle): 쓰기연산을 기록하여 손실 가능성 X|휘발생 메모리 Only|
+|**메모리 관리**|압축, [LRU](https://en.wikipedia.org/wiki/Cache_replacement_policies#LRU), [TTL](https://en.wikipedia.org/wiki/Time_to_live)|LRU Only|
+|**확장성**|<u>Redis Cluster</u> 기능 지원|\-|
+|**기타**|Pub/Sub, Transaction etc|\-|
 
-1. **요구사항 확실하게 하기**: 기획자 혹은 팀원과 커뮤니케이션을 통해 요구사항을 명확히 함.
-2. **대략적인 단계 및 세부사항 작성**:
-   * 세부적으로 모호한 부분 제거.
-   * e.g. Refactor와 Feature는 반드시 별도의 단계로 분리되어야 함.
-3. **코딩**: 위 문서화를 기반으로 작업하면 팀원이 이해하기 쉬운 PR이 자연스럽게 만들어짐.
+그렇습니다. 이 두 선택지는 케바케입니다.
 
-너무 큰 작업인 경우 'Stacked PR'이라는 방법을 활용할 수 있습니다.
+서비스 확장성과 데이터 영속성의 필요에 따라 갈리는 선택지:
 
-### 2\. Stacked PR 활용하기
+* 단순히 캐싱만 사용할 계획이다. &rarr; MemCached
+* 확장성과 데이터 영속성, 분산 캐시 환경이 필요하다. &rarr; Redis
 
-Stacked PR은 하나의 작업을 여러개의 PR을 활용하여 작업을 쪼개 수행하는 방법을 말합니다.  
-'Stacked'이라는 명칭에 맞게 하나의 큰 PR 내부에 작은 PR을 만든 후 LIFO 순서로 PR이 Merge하는 특징을 가지고 있습니다.
+### MemCached vs Dictionary 자료구조 기반
 
-만 번 설명하는 것보다는 보는 게 나을 것 같습니다:
+간단히 비교해보겠습니다.
 
-#### Stacked PR 예시
+||||
+|:---:|:---:|:---:|
+|**기준**|**MemCached**|**Dictionary**|
+|**데이터 공유**|여러 서버 인스턴스 간 공유|여러 서버의 캐시 공유 불가능|
+|**서비스 규모**|분산 서버, 대규모 트래픽의 적합|단일 서버, 소규모 애플리케이션|
+|**속도**|네트워크 지연 가능성 존재, 다만 빠름|네트워크 지연 없음, 로컬 메모리로 매우 빠름|
 
-PR이 어떻게 열리고 닫히는지 참고해주세요.  
-Main PR에서 작업 내용이 이해하기 쉽도록 핵심 내용만 보여줍니다. 세부적인 내용은 내부 PR 안에서 작업하면 좋습니다.
+확장 가능성에 따라 갈리는 선택지:
 
-```
-PR #1 "feat/movie-list-query-search" // Main PR
-- Commit "feat: add basic movie list query with pagination"
-- Commit "test: add unit tests for basic query functionality"
-* Open PR #2 "feat/search-by-director-title-actor"
-    - Commit "feat: implement search by director name, movie title, and actor ID"
-    - Commit "test: add tests for search functionality"
-    - Commit "refactor: optimize search query structure"
-* Merged PR #2 into #1
+* 단순 로컬 캐시가 필요한 경우 &rarr; Dictionary
+* 데이터 공유와 분산 캐시 환경이 필요한 경우 &rarr; MemCached
 
-* Open PR #3 "feat/filter-by-category"
-    - Commit "feat: implement category filter with 'All Categories' option"
-    - Commit "chore: add category filter validation logic"
-    - Commit "test: add tests for category filter feature"
-    * Open PR #4 "refactor/category-filter-query-details" // Detailed PR for #3
-        - Commit "refactor: move category filter logic into reusable service"
-        - Commit "test: update unit tests for refactored category filter"
-    * Merged PR #4 into #3
-* Merged PR #3 into #1
+---
 
-* Open PR #5 "feat/sort-by-latest-and-viewers"
-    - Commit "feat: add sort by latest release date and viewer count"
-    - Commit "chore: add validation for sort parameters"
-    - Commit "test: add tests for sorting functionality"
-* Merged PR #5 into #1
+## 결론
 
-* Open PR #6 "feat/additional-response-fields"
-    - Commit "feat: include additional fields (movie ID, category, title, director, price, viewers, created date) in response"
-    - Commit "test: validate response fields in integration tests"
-* Merged PR #6 into #1
-```
+우선, 모든 상황까지는 아니여도 대부분의 경우 Redis가 정답입니다. 서비스 규모가 커질수록 안정성, 성능을 함께 잡을 수 있는 선택지가 Redis입니다.
 
-### 3\. 작은 Code Change를 유지하기
+하지만, 첫 문장처럼 '은총알은 없기'때문에주어진 상황에 따라 적절히 선택하는 것이 올바를 것 같습니다.작은 규모의 서비스라면 MemCached나 Dictinary 방식도 고려해 볼 만한 선택지입니다.
 
-한결님은 이를 약 400-500줄 정도로 유지하려고 하십니다. 1000줄 이하라면 큰 문제는 없습니다.  
-<u>테스트코드는 필수적입니다</u>. 한결님이 작성하신 500줄의 코드 변경은 아래와 같이 구성됩니다.
-
-* 100줄(20%): 기능 변경
-* 400줄(80%): (최대한 많은) 테스트 코드
-
-> 이러면 외부 클래스/함수 의존성 때문에 테스트가 실패하지 않나요?
-
-(영상에서는 간략하게 언급하고 지나갔지만) 기능없는 빈 메서드를 만들고, '이후 기능이 구현되었을 때 이러한 모습이겠지.' 를 생각하고 테스트를 작성합니다.
-
-## 상호 존중하지 않는 PR은 Moloco 수석 개발자도 어려워한다.
-
-1,000줄의 코드를 한결님에게 보낸다면 한결님은 다음과 같이 말씀하신다고 합니다.
-
-> 나는 너의 코드를 보고 문제없다고 말할 자신이 없다..  
-> 너무 많은 Change를 한번에 넣었기 때문에.
-
-Unit Test가 이미 많이 작성되어 있다면 이를 쪼개서 보내달라고 부탁합니다.
-
-## 팀을 위한 좋은 습관
-
-* 장주영: "상대의 시간을 존중하는 좋은 습관같다."
-* 이한결: "그것도 맞지만, 이는 상호 존중이다. 내가 상대를 존중했을 때 <u>이 존중이 나에게 돌아올 확률이 크다.</u>"
-
-## 마치며
-
-주인공들의 이야기는 학생 개발자로서 배워가기 좋은 채널이다. 누구나 잘하고 싶은 욕구가 있지만 경험없이 노력만으로는 잘하기 힘든 것들이 있다. 프로 개발자들에게 이러한 경험을 배워갈 수 있다는 것 자체가 축복받은 사회다.
+||||||
+|:---:|:---:|:---:|:---:|:---:|
+|**기준**|**Dictionary**|**MemCached**|**Redis**|**MySQL**|
+|**속도 순위**|1|2|3|
+|**자료구조 지원**|O|X|O|▵|
+|**분산 지원**|X|▵|O|X|
+|**File 저장 지원**|X|X|O|O|
 
