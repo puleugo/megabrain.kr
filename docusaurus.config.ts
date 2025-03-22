@@ -107,6 +107,12 @@ const config: Config = {
         //   className: "navbar-highlight",
         //   position: 'left',
         // },
+        { // 코딩테스트 개최
+          href: 'https://ijo.megabrain.kr/',
+          label: '코딩테스트 개최중!',
+          className: "navbar-highlight",
+          position: 'left',
+        },
         {
           href: 'https://github.com/inje-megabrain',
           label: 'Github',
