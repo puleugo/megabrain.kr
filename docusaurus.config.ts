@@ -103,7 +103,7 @@ const config: Config = {
         },
         { // 주요 행사
           to: '/recruit',
-          label: '2023 신입회원 모집중!',
+          label: '신입회원 모집중!',
           className: "navbar-highlight",
           position: 'left',
         },
