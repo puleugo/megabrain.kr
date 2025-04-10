@@ -101,18 +101,18 @@ const config: Config = {
           label: '블로그',
           position: 'left',
         },
-        { // 주요 행사
-          to: '/recruit',
-          label: '신입회원 모집중!',
-          className: "navbar-highlight",
-          position: 'left',
-        },
-        { // 코딩테스트 개최
-          href: 'https://ijo.megabrain.kr/',
-          label: '코딩테스트 개최중!',
-          className: "navbar-highlight",
-          position: 'left',
-        },
+        // { // 주요 행사
+        //   to: '/recruit',
+        //   label: '신입회원 모집중!',
+        //   className: "navbar-highlight",
+        //   position: 'left',
+        // },
+        // { // 코딩테스트 개최
+        //   href: 'https://ijo.megabrain.kr/',
+        //   label: '코딩테스트 개최중!',
+        //   className: "navbar-highlight",
+        //   position: 'left',
+        // },
         {
           href: 'https://github.com/inje-megabrain',
           label: 'Github',
