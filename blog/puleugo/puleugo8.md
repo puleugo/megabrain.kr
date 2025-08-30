@@ -1,148 +1,70 @@
 ---
 authors: puleugo
-date: Sun, 16 Feb 2025 12:00:48 +0900
+date: Fri, 8 Sep 2023 03:01:42 +0900
 ---
 
-# [NestJS] AdminJS 프로덕션 배포하기
+# [MySQL 복구 2] binlog를 통해 데이터베이스 복구하기
 
-![](https://blog.kakaocdn.net/dn/bk4Jtx/btsMiJrJ2oR/FftjBdDZ6rm6uYYsdkUo1K/img.png)
+로컬 환경에서 [ibd 파일을 이용하여 데이터를 복구](https://puleugo.tistory.com/167)하려고 했습니다. 일부 테이블이 스키마 불일치 문제로 복구되지 않아서 바이너리 로그로 복구를 진행해봤습니다.
 
-## 무엇이 문제인가?
+혹시 저처럼 DB를 날려버리신 분들을 위해 제 삽질과 더 빠른 DB 복구를 위한 본 글을 작성합니다. 도움이 되었으면 좋겠습니다.
 
-(잘 알고 있으시겠지만) TypeScript로 작성된 파일들을 JavaScript로 컴파일하여 배포해야합니다. 보통 dist 디렉터리에 모아서 배포합니다.
+## 이해하기
 
-하지만 AdminJS는 빌드해주는 명령어도 공식문서에 없습니다. 개발 환경에서는 생각못했다가 배포할 때 겪는 문제입니다.
+MySQL에는 바이너리 로그라는 파일이 존재합니다. 사용자가 사용했던 쿼리들이 기록되어 있는 파일입니다. (SELECT는 예외)  
+DB 생성 시부터 binlog.000001으로 매일 binlog 파일이 생성되며 1씩 증가합니다.
 
-## 어떻게 해야 하는가?
+MySQL에 설정되어 있는 binlog 보존 기간만큼만 저장되다, 보존 기간을 초과한 파일은 삭제됩니다. 때문에 binlog 파일이 1부터 시작하지 않는다면.. 이미 옛 binlog 파일들은 삭제된 상태라서 복구할 수 없습니다.
 
-### 1\. 번들링하기
+## 1\. 바이너리 로그 파일 조회하기
 
-당연하게도 AdminJS 페이지에 해당하는 TypeScript 파일들을 빌드해주면 됩니다. 문서에 안 나와있지만 adminjs에서 지원하는 [bundler](https://github.com/SoftwareBrothers/adminjs-bundler)가 있습니다.
+기본적으로 binlog 파일은 /var/lib/mysql/binlog.0\* 경로에 존재합니다. 또는 SHOW BINARY LOGS; 명령어를 이용하여 바이너리 로그 목록을 조회할 수 있습니다.
 
-tsconfig.json > compilerOptions.module의 값이
-
-* commonjs인 경우에는 [2.0.0 이하 버전](https://www.puleugo.dev/util/clipboard.html?text=%22@adminjs/bundler%22:%20%22%5E2.0.0%22)을 설치하시면 됩니다.
-* 그외(ESM)인 경우에는 [3.0.0 이상 버전](https://www.puleugo.dev/util/clipboard.html?text=%22@adminjs/bundler%22:%20%22%5E3.0.0%22)을 설치하시면 됩니다.
-
-저는 프로젝트가 commonjs이기 때문에 2.0.0 버전을 예시로 듭니다. 큰 차이는 없으니 메서드의 jsDoc을 참고하여 사용하시면 됩니다.  
-2.0.0 버전의 경우엔 아래와 같이 사용합니다.
+## 2\. 바이너리 로그를 SQL로 변경하기
 
 ```
-//   src/admin/component/index.ts
-import { ComponentLoader } from 'adminjs';
+# 단일 파일을 SQL파일으로 변경
+mysqlbinlog /var/lib/mysql/binlog.000001 > binlog.000001.sql
 
-export const componentLoader = new ComponentLoader();
-export const components = {
-  NotEditableInput: componentLoader.add('NotEditableInput','./NotEditableInput',),
-};
+# 와일드 카드를 이용하여 단일 SQL파일으로 변경하기
+mysqlbinlog /var/lib/mysql/binlog.0* > binlog.sql
 
-
-//   src/bundler.ts
-import { bundle } from '@adminjs/bundler';
-import { join } from 'path';
-
-void (async () => {
-  await bundle({
-    // yarn run build 시 compoent들이 전부 초기화되는 파일 경로
-    customComponentsInitializationFilePath: 'src/admin/component/index.ts',
-    // 초기화된 compoent들을 번들링하여 결과물을 저장할 Directory 경로
-    destinationDir: 'dist/public',
-  });
-})();
+# 특정 파일들을 단일 SQL파일으로 변경하기
+mysqlbinlog /var/lib/mysql/binlog.000001 /var/lib/mysql/binlog.000002 > binlog.sql
 ```
 
-package.json > scripts를 수정
+이렇게 생성된 binlog.sql 파일을 읽어보면 아래와 같이 잘 병합된 모습을 볼 수 있습니다.
 
-* ["build": "nest build && node dist/bundler.ts"](https://www.puleugo.dev/util/clipboard.html?text=%22build%22:%20%22nest%20build%20&&%20node%20dist/bundler.ts%22)
+vi binlog.sql
 
-yarn run bundle 시 `src/bundler.ts 파일에서 destinationDir로 설정한 위치`에 번들링 결과물이 저장됩니다.
+![](https://blog.kakaocdn.net/dn/IdzSW/btsth7LpKSX/m91oGl4IjI8JAVqImkC0vK/img.png)
 
-### 2\. 번들링 적용하기
+binlog.sql
 
-AdminJS는 Client Side Rendering 입니다. 때문에 번들링 파일들의 외부 접근을 제공해줘야만 합니다.  
-이후 번들링 결과물을 정적의 형태로 제공해줘야 합니다. 저는 Vercel에서 Serverless를 기능을 활용하고 있으므로 vercel.json을 아래같이 수정하겠습니다.
+> VIM의 일반 모드에서 G를 입력하여 최하단으로, gg를 입력하여 최상단으로 이동할 수 있습니다.
 
-```
-{
-  "version": 2,
-  "builds": [
-    {
-      "src": "dist/main.js",
-      "use": "@vercel/node",
-      "config": {
-        "includeFiles": ["dist/**/*"]
-      }
-    },
-    {
-      "src": "dist/public/**/*",
-      "use": "@vercel/static",
-      "config": {
-        "outputDirectory": "dist/public"
-      }
-    }
-  ],
-  "routes": [
-    { "src": "/public/(.*)", "dest": "/dist/public/$1", "methods": ["GET"] },
-    { "src": "/(.*)", "dest": "/dist/main.js" }
-  ]
-}
-```
+필요없는 쿼리는 # 혹은 /\* \*/ 을 이용하여 주석 처리를 해줄 수 있습니다.
 
-Nest.js만 사용하고 있으시다면 ServeStaticModule을 사용하시면 됩니다.
-
-### 3\. 번들링 파일 불러오기
+## 3\. MySQL 접속하여 추가하기
 
 ```
-@Module({
-    imports: [
-        AdminJsModule.createAdminAsync({
-            useFactory: () => ({
-                adminJsOptions: {
-                    rootPath: '/admin',
-                    assetsCDN: 'https://serverless-adminjs.vercel.app/public/', // 마지막에 /를 꼭 붙여야함
-                }
-            }),
-        }),
-    ],
-})
-export class AdminModule implements OnModuleInit {
-     async onModuleInit() {
-        if (process.env.NODE_ENV === 'development') {
-            await adminjs.watch();
-        }
-    }
-}
+# 비밀번호가 없는 경우
+mysql -u {유저 이름} -f -e "use {당신의 테이블 이름}" < binlog.sql
+
+# 비밀번호가 있는 경우
+MYSQL_PWD="{비밀번호}" mysql -u {유저 이름} -e "use {당신의 테이블 이름}" < binlog.sql
 ```
 
-이렇게 수행하면 끝.
+![](https://blog.kakaocdn.net/dn/ScltJ/btstq7pyNn1/T8Fvdfl8oBn1OqdVwV2aaK/img.png)
 
-[코드 예제](https://github.com/puleugo/nestjs-adminjs-serverless)
+잘 복구되었습니다.
 
-[GitHub - puleugo/nestjs-adminjs-serverless: NestJS 환경에서 AdminJS를 사용하는 예제 코드입니다.
+## 권장 도서
 
-NestJS 환경에서 AdminJS를 사용하는 예제 코드입니다. Contribute to puleugo/nestjs-adminjs-serverless development by creating an account on GitHub.
-
-github.com](https://github.com/puleugo/nestjs-adminjs-serverless)
+* DBA가 알려주는 MySQL의 동작원리와 설정들  
+[Real MySQL 1판](https://link.coupang.com/a/bNdSWv)
 
 ---
 
-## 그 외 이슈:
-
-### Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons
-
-AdminJS 라이브러리가 사용하는 React 버전과 설치한 React의 버전이 동일하지 않아서 생기는 경우가 많습니다.  
-`yarn list --depth=1` 명령어를 입력해서 AdminJS의 React 버전을 조회해 버전을 통일해줍시다.
-
-### 서버리스 환경에서 배포 실패
-
-서버리스는 근본적으로 서비스를 불변성으로 관리합니다. AdminJS는 `NODE_ENV`와 `사전 번들링 여부`와 상관없이 항상 임시 파일(./adminjs)에 번들링을 수행합니다.  
-프로덕션 환경 변수에 `ADMIN_JS_SKIP_BUNDLE=true`를 추가해주면 문제없이 배포됩니다.
-
-### EMS 버전을 사용해도 되나요?
-
-AdminJS 또한 프론트엔드에서의 사용을 지원하기 떄문에 7.0.0 버전 이후로 EMS을 지원합니다. 하지만 Nest.js 같은 Node.js 계열 서버 라이브러리는 아직까지 CJS만을 지원하므로 버전업은 권장하지 않습니다.
-
-### @tiptap/pm/state을 찾을 수 없대요..
-
-별도로 작성했스빈다. [이 글](https://puleugo.tistory.com/217)을 읽어주세요.
+*"이 포스팅은 쿠팡 파트너스 활동의 일환으로, 이에 따른 일정액의 수수료를 제공받습니다."*
 

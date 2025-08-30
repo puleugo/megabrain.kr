@@ -1,80 +1,77 @@
 ---
 authors: puleugo
-date: Wed, 13 Nov 2024 08:57:11 +0900
+date: Tue, 6 Jun 2023 17:27:55 +0900
 ---
 
-# [계왕권 출시] 당신의 블로그 가치를 44배 향상시켜주는 서비스
+# 크롬의 탭은 프로세스일까? 스레드일까?
 
-> 당신의 게시글을 가치를 44배 향상시켜주는 서비스
+![](https://blog.kakaocdn.net/dn/bA6mFa/btsiQIG4PmE/oOqwnAxmBGcVF9XknWSVrk/img.jpg)
 
-* [초기 기획 글](https://puleugo.tistory.com/206)
-* [베타버전 개발기](https://puleugo.tistory.com/210)
-* [공식 문서](https://kaio-ken.gitbook.io/kaio-ken-docs)
-* [깃헙 레퍼지토리](https://github.com/puleugo/kaio-ken)
-* [100% AI, 적용 결과물](https://en.puleugo.dev/)
+NEXTERS의 면접 질문이었다.
 
-## 프로젝트 소개
+### 서론
 
-계왕권은 자동화 및 게시글 번역 배포 서비스입니다. 대표적 선진국 9개국의 인구수는 한국의 약 44배이므로, 단순 계산으로 당신의 블로그는 44배 이상의 영향력을 얻을 수 있습니다.
+면접 질문으로 크롬의 탭은 프로세스인지 스레드인지, 그리고 왜 그렇게 생각하는지에 대해 질문이 왔다. 이 글에서는 브라우저가 탭을 어떻게 관리하는지, 그리고 왜 그렇게 관리하는지를 조사해보려구 한다.
 
-![](https://blog.kakaocdn.net/dn/dOyszI/btsKEGBAQWa/kQIQ0Ivamgbh5lS9SXjUp1/img.png)
+![](https://blog.kakaocdn.net/dn/btKBwk/btsiOeGUnwC/oc1plZxAzCmAxmC1Vhthxk/img.png)
 
-1500 조회수
+대부분의 브라우저가 크로미움 기반이다. Naver Whale또한 마찬가지.
 
-## 왜 개발하게 되었는가?
+고맙게도 Chrome Developer Blog에서 브라우저 관련 내부 동작 원리를 설명해주는 글이 있다.
 
-저는 프로그래밍을 시작한 이후부터 국내 시니어 개발자들의 경험을 얻기 위해 강연, 스터디를 참여하고자 노력했습니다. 그분들의 공통된 조언이자 후회는 프로그래밍에 쏟은 노력을 외국어 학습에 쏟았다면 더 많은 기회를 얻을 수 있었을 것이라는 것이었습니다.  
-구글, 페이스북 같은 IT 기업의 헤드헌터에게 연락이 오더라도 영어능력의 부재로 인해 기회를 포기하는 경우도 있었으며, 본인들의 역량을 그들에게 전달하지 못하는 것이 가장 큰 아쉬움이었습니다.  
-외국어 공부를 대신해주는 것은 아니지만 **비슷한 기회를 쉽게 창출할 수 있는 프로젝트**입니다.
+이 글에서도 설명하겠지만, 자세한 내용은 아래 내용 참고.  
+[웹 브라우저의 내부 살펴보기](https://developer.chrome.com/blog/inside-browser-part1/)
 
-> '계왕권'은 선배들에게 받은 조언 통해  
-> 노력을 배로 향상시켜주는 프로젝트입니다.
+### 크롬의 탭은 프로세스다. (멀티 프로세스)
 
-### 번역 결과물 미리보기
+(나는 프로세스로 답했다가, 경량화 문제를 의심하고 멀티 스레드라고 답을 바꿨다.)
 
-비교해보기  
-[원글](https://ko.puleugo.dev/206) | [번역글](https://en.puleugo.dev/your-blog-can-use-kaio-ken-fb6c4d6a15d7)
+크롬은 멀티 프로세스를 사용하며 IPC(Inter Process Communication, 프로세스 간 통신)을 사용한다.  
+만약, 특정 탭이 응답하지 않을 때는 **동작하지 않는 탭의 프로세스를 재시작 시켜버리는 방식**을 사용한다.
 
-수상할 정도로 높은 번역 퀄리티
+### 멀티 프로세스는 높은 성능을 요구하지만, 안정적이다.
 
-![](https://blog.kakaocdn.net/dn/bTpfRC/btsKEIMVBgY/4JRIXpWUBUYDVtvwxThAvk/img.png)
+멀티 프로세스는 무겁다. 다만 크롬 브라우저에서 이런 구조를 선택할 수 밖에 없었던 이유는 **웹 사이트를 개발자가 별도의 심사 없이 배포**하기 때문이다.
 
-퀄리티 높은 번역 게시글
+악성 개발자가 모든 공유자원의 주도권을 가진 상태로 죽어버린다면 문제가 발생할 수 있다.
 
-[공식 문서](https://kaio-ken.gitbook.io/kaio-ken-docs)
+이게 크롬이 메모리를 많이 사용하는 이유다. 크롬은 메모리 성능보다 **안정적이고 빠른 사용자 경험**을 선택한 것이다.
 
-[소개 | Kaio-ken Docs
+### 크롬의 프로세스 처리 방식
 
-Last updated 8 minutes ago
+크롬은 크게 4가지의 프로세스를 사용한다.
 
-kaio-ken.gitbook.io](https://kaio-ken.gitbook.io/kaio-ken-docs)
+[모든 프로세스는 여기를 읽어보세용.](https://developer.chrome.com/docs/extensions/reference/processes/#type-ProcessType)
 
----
+|||
+|:---:|:---:|
+|**프로세스**|**프로세스의 제어영역**|
+|브라우저 프로세스|탭 외부의 크롬 내장 기능(URL 표시줄, 북마크 바, 이전페이지, 다음 페이지 등)을 담당|
+|렌더러 프로세스|탭 내부의 웹 사이트 표시되는 모든 것을 담당|
+|플러그인 프로세스|웹 사이트에서 사용하는 플러그인(flash, PDF, media, music 등)을 담당.|
+|CPU 프로세스|GPU 사용하는 부분은 해당 프로세스가 담당.|
 
-## QnA
+아래는 예시입니다.
 
-### 무료로 사용할 수 있나요?
+![](https://blog.kakaocdn.net/dn/AGHbV/btsiQkGfRB1/KKvE94DXsz6qKn8kxo66Vk/img.png)
 
-네, Github Action 통해서 사용하실 수 있습니다.
+위의 예시에서 말하는 것 처럼 브라우저의 **탭은 한 프로세스만 지니는게 아니라 여러개의 프로세스**를 지닌다.
 
-### 돈이 조금이라도 들 수 있나요?
+### 탭의 핵심은 렌더러 프로세스. (iframe은 어떻게 처리할까요?)
 
-네, ChatGPT API를 통해 번역하기 때문에 API 이용비가 발생할 수 있습니다.
+그렇다면 브라우저에서 iframe은 어떻게 처리할까?
 
-### 이 서비스를 쓰면 조회수를 제외하여 구체적으로 어떤 이익이 있을 수 있을까요?
+> iframe: 사이트 내부에 또 다른 웹 사이트를 삽입하는 것.
 
-게시글 하단에 게시글 주제에 관련된 프로모션 링크를 삽입하는 방식으로 수익창출을 하려고합니다.  
-현재 기획으로는 아마존, 이베이, 알리 익스프레스, 클릭뱅크, 애플 어필리에이트, 쿠팡 파트너스가 있습니다. 금전적인 이익보다도 본인의 프로젝트나 PR이 해외에도 노출될 수 있는 것이 가장 큰 메리트입니다.
+![](https://blog.kakaocdn.net/dn/dE56V1/btsiNbX3qHL/lk8vuyv7HMfC0MeyKEITj0/img.png)
 
-### 저도 기여할 수 있나요?
+이런 느낌..
 
-환영합니다. 현재 영어 블로그(Medium)밖에 지원이 안되므로 일어, 중국어, 인도어 등 여러 블로그의 전략패턴의 코드를 작성하는 것을 권장드립니다.
+크롬에서는 iframe을 어떻게 관리할까?
 
-[https://github.com/puleugo/kaio-ken](https://github.com/puleugo/kaio-ken)
+**동일 프로세스로 접근하면 브라우저 사용자의 개인 정보 등 취약한 정보에 접근할 수 있기 때문이다.**
 
-[GitHub - puleugo/kaio-ken: Automated Translation Development Post Distribution Application
+브라우저는 이런 문제를 해결하기 위하여 iframe 별 [**동일 출처 정책**](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)과 [**사이트 별 렌더러 프로세스를 격리**](https://www.chromium.org/Home/chromium-security/site-isolation/)하여 통해 해결한다.
 
-Automated Translation Development Post Distribution Application - puleugo/kaio-ken
-
-github.com](https://github.com/puleugo/kaio-ken)
+이런 이유때문에 우리가 CORS 문제를 겪기도 한다.
 
