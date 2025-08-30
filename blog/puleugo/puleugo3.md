@@ -1,77 +1,111 @@
 ---
 authors: puleugo
-date: Tue, 6 Jun 2023 17:27:55 +0900
+date: Sun, 24 Nov 2024 18:44:09 +0900
 ---
 
-# 크롬의 탭은 프로세스일까? 스레드일까?
+# [Github] 상호 존중하는 PR 만들기
 
-![](https://blog.kakaocdn.net/dn/bA6mFa/btsiQIG4PmE/oOqwnAxmBGcVF9XknWSVrk/img.jpg)
+본 게시글은 주인공들의 이야기, [이한결](https://www.linkedin.com/in/hanlee0707/)님과의 인터뷰 내용을 참고하여 작성했습니다.  
+[https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI](https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI)
 
-NEXTERS의 면접 질문이었다.
+Full Video
 
-### 서론
+## 도입
 
-면접 질문으로 크롬의 탭은 프로세스인지 스레드인지, 그리고 왜 그렇게 생각하는지에 대해 질문이 왔다. 이 글에서는 브라우저가 탭을 어떻게 관리하는지, 그리고 왜 그렇게 관리하는지를 조사해보려구 한다.
+최근 팀원에게 아래와 같은 코멘트를 받았습니다.
 
-![](https://blog.kakaocdn.net/dn/btKBwk/btsiOeGUnwC/oc1plZxAzCmAxmC1Vhthxk/img.png)
-
-대부분의 브라우저가 크로미움 기반이다. Naver Whale또한 마찬가지.
-
-고맙게도 Chrome Developer Blog에서 브라우저 관련 내부 동작 원리를 설명해주는 글이 있다.
-
-이 글에서도 설명하겠지만, 자세한 내용은 아래 내용 참고.  
-[웹 브라우저의 내부 살펴보기](https://developer.chrome.com/blog/inside-browser-part1/)
-
-### 크롬의 탭은 프로세스다. (멀티 프로세스)
-
-(나는 프로세스로 답했다가, 경량화 문제를 의심하고 멀티 스레드라고 답을 바꿨다.)
-
-크롬은 멀티 프로세스를 사용하며 IPC(Inter Process Communication, 프로세스 간 통신)을 사용한다.  
-만약, 특정 탭이 응답하지 않을 때는 **동작하지 않는 탭의 프로세스를 재시작 시켜버리는 방식**을 사용한다.
-
-### 멀티 프로세스는 높은 성능을 요구하지만, 안정적이다.
-
-멀티 프로세스는 무겁다. 다만 크롬 브라우저에서 이런 구조를 선택할 수 밖에 없었던 이유는 **웹 사이트를 개발자가 별도의 심사 없이 배포**하기 때문이다.
-
-악성 개발자가 모든 공유자원의 주도권을 가진 상태로 죽어버린다면 문제가 발생할 수 있다.
-
-이게 크롬이 메모리를 많이 사용하는 이유다. 크롬은 메모리 성능보다 **안정적이고 빠른 사용자 경험**을 선택한 것이다.
-
-### 크롬의 프로세스 처리 방식
-
-크롬은 크게 4가지의 프로세스를 사용한다.
-
-[모든 프로세스는 여기를 읽어보세용.](https://developer.chrome.com/docs/extensions/reference/processes/#type-ProcessType)
-
-|||
-|:---:|:---:|
-|**프로세스**|**프로세스의 제어영역**|
-|브라우저 프로세스|탭 외부의 크롬 내장 기능(URL 표시줄, 북마크 바, 이전페이지, 다음 페이지 등)을 담당|
-|렌더러 프로세스|탭 내부의 웹 사이트 표시되는 모든 것을 담당|
-|플러그인 프로세스|웹 사이트에서 사용하는 플러그인(flash, PDF, media, music 등)을 담당.|
-|CPU 프로세스|GPU 사용하는 부분은 해당 프로세스가 담당.|
-
-아래는 예시입니다.
-
-![](https://blog.kakaocdn.net/dn/AGHbV/btsiQkGfRB1/KKvE94DXsz6qKn8kxo66Vk/img.png)
-
-위의 예시에서 말하는 것 처럼 브라우저의 **탭은 한 프로세스만 지니는게 아니라 여러개의 프로세스**를 지닌다.
-
-### 탭의 핵심은 렌더러 프로세스. (iframe은 어떻게 처리할까요?)
-
-그렇다면 브라우저에서 iframe은 어떻게 처리할까?
-
-> iframe: 사이트 내부에 또 다른 웹 사이트를 삽입하는 것.
-
-![](https://blog.kakaocdn.net/dn/dE56V1/btsiNbX3qHL/lk8vuyv7HMfC0MeyKEITj0/img.png)
-
-이런 느낌..
-
-크롬에서는 iframe을 어떻게 관리할까?
-
-**동일 프로세스로 접근하면 브라우저 사용자의 개인 정보 등 취약한 정보에 접근할 수 있기 때문이다.**
-
-브라우저는 이런 문제를 해결하기 위하여 iframe 별 [**동일 출처 정책**](https://developer.mozilla.org/en-US/docs/Web/Security/Same-origin_policy)과 [**사이트 별 렌더러 프로세스를 격리**](https://www.chromium.org/Home/chromium-security/site-isolation/)하여 통해 해결한다.
-
-이런 이유때문에 우리가 CORS 문제를 겪기도 한다.
+> 이한결님과의 인터뷰에는 아래와 같은 답이 있었습니다.
+> 
+> *   가독성 좋은 PR을 만드는 방법
+> *   가독성 좋은 Commit을 만드는 방법
+> 
+> ## 무엇이 상호 존중하는 PR인가?
+> 
+> 상호 존중하는 PR은 읽기 좋은 PR이며 리뷰어 입장에서 "**이거 바로 Approve해도 되겠는데?**"라는 말이 나오는 것이 가장 좋습니다.  
+> 읽기 좋은 PR은 글쓰기를 생각하면 됩니다. 가독성 좋은 글은 다음과 같이 구성되어있습니다:
+> 
+> *   각 문단에는 하나의 주제만 설명한다.
+> *   각 문장에는 하나의 내용만 설명한다.
+> 
+> PR에 적용해보면 PR에는 하나의 주제만을 Commit에는 하나의 내용만으로 구성하는 것이 가독성을 향상하는 간단한 방법입니다.  
+>   
+> 
+> ## 구체적으로 좋은 PR을 만드는 방법
+> 
+> ### 1\. 업무에 Check Point를 먼저 정하기
+> 
+> 해결해야할 업무를 수행하기 전 미리 작업을 분리할 수 있는 단위로 쪼갭니다. 한결님의 예시:
+> 
+> 2.  너무 큰 작업인 경우 'Stacked PR'이라는 방법을 활용할 수 있습니다. 
+>     
+>     ### 2\. Stacked PR 활용하기
+>     
+>     Stacked PR은 하나의 작업을 여러개의 PR을 활용하여 작업을 쪼개 수행하는 방법을 말합니다.  
+>     'Stacked'이라는 명칭에 맞게 하나의 큰 PR 내부에 작은 PR을 만든 후 LIFO 순서로 PR이 Merge하는 특징을 가지고 있습니다.
+>     
+>     만 번 설명하는 것보다는 보는 게 나을 것 같습니다:
+>     
+>     #### Stacked PR 예시
+>     
+>     PR이 어떻게 열리고 닫히는지 참고해주세요.  
+>     Main PR에서 작업 내용이 이해하기 쉽도록 핵심 내용만 보여줍니다. 세부적인 내용은 내부 PR 안에서 작업하면 좋습니다. 
+>     
+>     ```
+>     PR #1 "feat/movie-list-query-search" // Main PR
+>     - Commit "feat: add basic movie list query with pagination"
+>     - Commit "test: add unit tests for basic query functionality"
+>     * Open PR #2 "feat/search-by-director-title-actor"
+>         - Commit "feat: implement search by director name, movie title, and actor ID"
+>         - Commit "test: add tests for search functionality"
+>         - Commit "refactor: optimize search query structure"
+>     * Merged PR #2 into #1
+>     
+>     * Open PR #3 "feat/filter-by-category"
+>         - Commit "feat: implement category filter with 'All Categories' option"
+>         - Commit "chore: add category filter validation logic"
+>         - Commit "test: add tests for category filter feature"
+>         * Open PR #4 "refactor/category-filter-query-details" // Detailed PR for #3
+>             - Commit "refactor: move category filter logic into reusable service"
+>             - Commit "test: update unit tests for refactored category filter"
+>         * Merged PR #4 into #3
+>     * Merged PR #3 into #1
+>     
+>     * Open PR #5 "feat/sort-by-latest-and-viewers"
+>         - Commit "feat: add sort by latest release date and viewer count"
+>         - Commit "chore: add validation for sort parameters"
+>         - Commit "test: add tests for sorting functionality"
+>     * Merged PR #5 into #1
+>     
+>     * Open PR #6 "feat/additional-response-fields"
+>         - Commit "feat: include additional fields (movie ID, category, title, director, price, viewers, created date) in response"
+>         - Commit "test: validate response fields in integration tests"
+>     * Merged PR #6 into #1
+>     ```
+>     
+>     ### 3\. 작은 Code Change를 유지하기
+>     
+>     한결님은 이를 약 400-500줄 정도로 유지하려고 하십니다. 1000줄 이하라면 큰 문제는 없습니다.  
+>     테스트코드는 필수적입니다. 한결님이 작성하신 500줄의 코드 변경은 아래와 같이 구성됩니다.
+>     
+>     *   100줄(20%): 기능 변경
+>     *   400줄(80%): (최대한 많은) 테스트 코드
+>     
+>     > (영상에서는 간략하게 언급하고 지나갔지만) 기능없는 빈 메서드를 만들고, '이후 기능이 구현되었을 때 이러한 모습이겠지.' 를 생각하고 테스트를 작성합니다.
+>     > 
+>     > ## 상호 존중하지 않는 PR은 Moloco 수석 개발자도 어려워한다.
+>     > 
+>     > 1,000줄의 코드를 한결님에게 보낸다면 한결님은 다음과 같이 말씀하신다고 합니다.
+>     > 
+>     > > Unit Test가 이미 많이 작성되어 있다면 이를 쪼개서 보내달라고 부탁합니다.  
+>     > >  
+>     > > 
+>     > > ## 팀을 위한 좋은 습관
+>     > > 
+>     > > *   장주영: "상대의 시간을 존중하는 좋은 습관같다."
+>     > > *   이한결: "그것도 맞지만, 이는 상호 존중이다. 내가 상대를 존중했을 때 이 존중이 나에게 돌아올 확률이 크다."
+>     > > 
+>     > > ## 마치며
+>     > > 
+>     > > 주인공들의 이야기는 학생 개발자로서 배워가기 좋은 채널이다. 누구나 잘하고 싶은 욕구가 있지만 경험없이 노력만으로는 잘하기 힘든 것들이 있다. 프로 개발자들에게 이러한 경험을 배워갈 수 있다는 것 자체가 축복받은 사회다.
+>
 

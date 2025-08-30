@@ -1,54 +1,148 @@
 ---
 authors: puleugo
-date: Sat, 3 Jun 2023 18:29:58 +0900
+date: Sun, 16 Feb 2025 12:00:48 +0900
 ---
 
-# NEXTERS 23기 면접 후기
+# [NestJS] AdminJS 프로덕션 배포하기
 
-![](https://blog.kakaocdn.net/dn/LvwuP/btsiJyzePcL/UwQKYwjy0NrqigWdEDKzkk/img.jpg)
+![](https://blog.kakaocdn.net/dn/bk4Jtx/btsMiJrJ2oR/FftjBdDZ6rm6uYYsdkUo1K/img.png)
 
-면접 막 끝나고 바로 면접 후기를 씁니다..
+## 무엇이 문제인가?
 
-#### 면접 진행
+(잘 알고 있으시겠지만) TypeScript로 작성된 파일들을 JavaScript로 컴파일하여 배포해야합니다. 보통 dist 디렉터리에 모아서 배포합니다.
 
-* zoom으로 비대면으로 진행
-* 각 면접 대기실으로 입장되고 면접 시간이 되면 소 회의실로 옮겨짐.
-* 2:2 30분으로 진행되었으며, 저와 면접을 같이본 분은 경험 많은 고수분..
+하지만 AdminJS는 빌드해주는 명령어도 공식문서에 없습니다. 개발 환경에서는 생각못했다가 배포할 때 겪는 문제입니다.
 
-#### 질문 목록
+## 어떻게 해야 하는가?
 
-면접 안내 중 면접 질문 목록을 공유하지는 말라는건 없었으니 작성하겠습니당.
+### 1\. 번들링하기
 
-문제있으면 [메일주세요!](mailto:puleugo@gmail.com)
+당연하게도 AdminJS 페이지에 해당하는 TypeScript 파일들을 빌드해주면 됩니다. 문서에 안 나와있지만 adminjs에서 지원하는 [bundler](https://github.com/SoftwareBrothers/adminjs-bundler)가 있습니다.
 
-면접은 개인의 포폴 및 자소서에 맞춰서 한다.
+tsconfig.json > compilerOptions.module의 값이
 
-나는 CS공부를 했던것을 적어서 CS질문이 몇가지 왔고, Nest.js라는 비주류 개발언어를 써서 그런지 프레임워크에 대한 질문은 안왔다.
+*   commonjs인 경우에는 [2.0.0 이하 버전](https://www.puleugo.dev/util/clipboard.html?text=%22@adminjs/bundler%22:%20%22%5E2.0.0%22)을 설치하시면 됩니다.
+*   그외(ESM)인 경우에는 [3.0.0 이상 버전](https://www.puleugo.dev/util/clipboard.html?text=%22@adminjs/bundler%22:%20%22%5E3.0.0%22)을 설치하시면 됩니다.
 
-#### 인성 질문
+저는 프로젝트가 commonjs이기 때문에 2.0.0 버전을 예시로 듭니다. 큰 차이는 없으니 메서드의 jsDoc을 참고하여 사용하시면 됩니다.  
+2.0.0 버전의 경우엔 아래와 같이 사용합니다.
 
-* 프로젝트를 같이하지 싫은사람은? 그리고 그 사람이랑 팀이 되었다면?
+```
+//   src/admin/component/index.ts
+import { ComponentLoader } from 'adminjs';
 
-#### 기술질문
+export const componentLoader = new ComponentLoader();
+export const components = {
+  NotEditableInput: componentLoader.add('NotEditableInput','./NotEditableInput',),
+};
 
-* DB 트랜잭션 ACID에 대해 설명해라.
-* 사용한 데이터베이스를 선택한 이유는 무엇인가?
-* DB 인덱스는 무엇인가?
-* 검색기능 어캐 구현했나요? 깡 SQL문 말고 다른 방식으로 구현한다면 어떻게 구현할건가요?
-* (인프라가 프로젝트에 있는 경우, )어떻게 구현하였는가?
-* CS 공부하셨다고 하는데 OS도 하셨나용?  
-  넹.
-  * 그럼 크롬 브라우저의 각 탭은 브라우저는 스레드일까요? 프로세스일까요?  
-    스레드입니다!(프로세스다.)  
-[https://puleugo.tistory.com/162](https://puleugo.tistory.com/162)
-  \[크롬의 탭은 프로세스일까? 스레드일까?
 
-서론 면접 질문으로 크롬의 탭은 프로세스인지 스레드인지, 그리고 왜 그렇게 생각하는지에 대해 질문이 왔다. 이 글에서는 브라우저가 탭을 어떻게 관리하는지, 그리고 왜 그렇게 관리하는지
+//   src/bundler.ts
+import { bundle } from '@adminjs/bundler';
+import { join } from 'path';
 
-puleugo.tistory.com\]([https://puleugo.tistory.com/162](https://puleugo.tistory.com/162))
+void (async () => {
+  await bundle({
+    // yarn run build 시 compoent들이 전부 초기화되는 파일 경로
+    customComponentsInitializationFilePath: 'src/admin/component/index.ts',
+    // 초기화된 compoent들을 번들링하여 결과물을 저장할 Directory 경로
+    destinationDir: 'dist/public',
+  });
+})();
+```
 
-#### 아쉬웠던 점.
+package.json > scripts를 수정
 
-* 거의 다 대답할 수 있었던 질문이었는데, 꼬리질문을 유도하려고 하다가 너무 기초만 답했다. (면접을 연습 더 해야함.)
-* 질답할 때 경험 부족인지 달달 떨리고.. 아는거에 30%도 못보여준 느낌..
+*   ["build": "nest build && node dist/bundler.ts"](https://www.puleugo.dev/util/clipboard.html?text=%22build%22:%20%22nest%20build%20&&%20node%20dist/bundler.ts%22)
+
+yarn run bundle 시 `src/bundler.ts 파일에서 destinationDir로 설정한 위치`에 번들링 결과물이 저장됩니다.
+
+### 2\. 번들링 적용하기
+
+AdminJS는 Client Side Rendering 입니다. 때문에 번들링 파일들의 외부 접근을 제공해줘야만 합니다.  
+이후 번들링 결과물을 정적의 형태로 제공해줘야 합니다. 저는 Vercel에서 Serverless를 기능을 활용하고 있으므로 vercel.json을 아래같이 수정하겠습니다.
+
+```
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "dist/main.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["dist/**/*"]
+      }
+    },
+    {
+      "src": "dist/public/**/*",
+      "use": "@vercel/static",
+      "config": {
+        "outputDirectory": "dist/public"
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/public/(.*)", "dest": "/dist/public/$1", "methods": ["GET"] },
+    { "src": "/(.*)", "dest": "/dist/main.js" }
+  ]
+}
+```
+
+Nest.js만 사용하고 있으시다면 ServeStaticModule을 사용하시면 됩니다.
+
+### 3\. 번들링 파일 불러오기
+
+```
+@Module({
+    imports: [
+        AdminJsModule.createAdminAsync({
+            useFactory: () => ({
+                adminJsOptions: {
+                    rootPath: '/admin',
+                    assetsCDN: 'https://serverless-adminjs.vercel.app/public/', // 마지막에 /를 꼭 붙여야함
+                }
+            }),
+        }),
+    ],
+})
+export class AdminModule implements OnModuleInit {
+     async onModuleInit() {
+        if (process.env.NODE_ENV === 'development') {
+            await adminjs.watch();
+        }
+    }
+}
+```
+
+이렇게 수행하면 끝.
+
+[코드 예제](https://github.com/puleugo/nestjs-adminjs-serverless)
+
+ [GitHub - puleugo/nestjs-adminjs-serverless: NestJS 환경에서 AdminJS를 사용하는 예제 코드입니다.
+
+NestJS 환경에서 AdminJS를 사용하는 예제 코드입니다. Contribute to puleugo/nestjs-adminjs-serverless development by creating an account on GitHub.
+
+github.com](https://github.com/puleugo/nestjs-adminjs-serverless)
+
+---
+
+그 외 이슈:
+
+### Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons
+
+AdminJS 라이브러리가 사용하는 React 버전과 설치한 React의 버전이 동일하지 않아서 생기는 경우가 많습니다.  
+`yarn list --depth=1` 명령어를 입력해서 AdminJS의 React 버전을 조회해 버전을 통일해줍시다.
+
+### 서버리스 환경에서 배포 실패
+
+서버리스는 근본적으로 서비스를 불변성으로 관리합니다. AdminJS는 `NODE_ENV`와 `사전 번들링 여부`와 상관없이 항상 임시 파일(./adminjs)에 번들링을 수행합니다.  
+프로덕션 환경 변수에 `ADMIN_JS_SKIP_BUNDLE=true`를 추가해주면 문제없이 배포됩니다.
+
+### EMS 버전을 사용해도 되나요?
+
+AdminJS 또한 프론트엔드에서의 사용을 지원하기 떄문에 7.0.0 버전 이후로 EMS을 지원합니다. 하지만 Nest.js 같은 Node.js 계열 서버 라이브러리는 아직까지 CJS만을 지원하므로 버전업은 권장하지 않습니다.
+
+### @tiptap/pm/state을 찾을 수 없대요..
+
+별도로 작성했습니다. [이 글](https://puleugo.tistory.com/217)을 읽어주세요.
 

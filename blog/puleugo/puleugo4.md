@@ -1,168 +1,86 @@
 ---
 authors: puleugo
-date: Fri, 21 Jul 2023 20:14:03 +0900
+date: Sun, 17 Nov 2024 21:44:55 +0900
 ---
 
-# 원클릭 회원가입 승인 구현(telegram bot, AWS s3, Flutter, Nest.js)
+# [CloudFlare] 이미지 로드 속도 향상하기
 
-### 서론
+## 개요
 
-학교 애플리케이션을 개발 중, 학생증 사본을 통해 학생 인증을 하는 기능을 구현하려고 합니다.
+**문제**
 
-사용 기술:
+Waktaverse.games 사이트의 이미지 로딩 속도가 느려 사용자 경험에 부정적 영향을 미치고 있었습니다.  
+특히 네트워크가 느린 환경에서는 LCP(Largest Contentful Paint) 시간이 권장사항인 2.5를 초과하여, Fast 4G 환경에서는 4.88초, Slow 4G 환경에서는 28.54초가 소요됐습니다.
 
-* nest.js 9.4.1
-* node-telegram-bot-api 0.61.0
-* aws s3, ec2
+**해결방안**
 
-결과물:
+이미지 로딩 성능을 개선하기 위해 Cloudflare를 활용하여 다음과 같은 조치를 취했습니다. WebP 형식으로 압축된 이미지 캐시를 응답했으며 페이지 새로고침 시 서버로 재요청하는 문제를 해결하기 위해 Cache-Control 헤더를 추가했습니다.  
+  
+개선 결과:  
+\- Fast 4G 환경: 5.88초 → 2.39초 (약 59.35% 개선)  
+\- Slow 4G 환경: 28.54초 → 8.24초 (약 71.13% 개선) 
 
-![](https://blog.kakaocdn.net/dn/m1OAI/btsoypn4hN8/dw0uXqYUqmPScOwk5mipk1/img.png)
+*   [waktaverse.games](https://waktaverse.games/) 웹 사이트의 이미지 로드 성능 개선을 수행했다.
 
-실제 운영되는 프로덕션입니다.
+## 너무 느려요. 개선해주세요.
 
-### 1\. telegram 봇 발급
+![](https://blog.kakaocdn.net/dn/toR2D/btsKKFR12jJ/9FOuaq7CvxG2NGifV90thK/img.png)
 
-이번에 구현 방식을 조사해보며 telegram을 선택하게 된 이유는 아래와 같다.
+상혁이가 Waktaverse 이미지 로드 속도가 느리다고 문의메일을 보냈다.
 
-* p2p 방식으로 높은 기밀성
-* 빠르게 개발할 수 있는 개발자 친화적 플랫폼
+동아리 친구가 이미지 성능개선 작업 해보고싶다고 말하니까, 내가 속한 팀에 메일을 보내줬다. 
 
-#### 1\. BotFather 검색 후 추가
+## 어느정도로 느린가?
 
-![](https://blog.kakaocdn.net/dn/SbJfR/btsoyXdK6p3/irx0bdcaW9EjCP0KQ7ghO0/img.png)
+![](https://blog.kakaocdn.net/dn/bb9ZAB/btsKUABCW8L/eo8RYlYhNKZQ8WzhkKyk4K/img.png)![](https://blog.kakaocdn.net/dn/w3Z7L/btsKUDLRx99/KXrH40FWFYMGMC0FetyJ6k/img.png)
 
-#### 2\. /start 명령어를 입력하여 채팅을 시작해주세요.
+Fast 4G: 5.88 s, Slow 4G: 28.54 s
 
-![](https://blog.kakaocdn.net/dn/bvSQzy/btsov5EFACt/tRlYFP7SeidTIx6bR0ncvk/img.png)
+Chrome Browser의 Performance 기능을 활용하여 성능을 측정해보았다. 네트워크/메모리 성능을 제한하여 측정해볼 수 있으므로 성능 개선 필요 여부를 확인하는데 추천하는 방법이다.
 
-#### 3\. /newbot 명령어를 입력하여 새로운 봇을 만들어주세요.
+LCP(가장 큰 콘텐츠 페인트) 소요 시간을 측정했다.
 
-![](https://blog.kakaocdn.net/dn/tJ3KU/btsoxaLYe58/sT8h4BMAKDOspeUbKb8LH0/img.png)
+*   Fast 4G: 5.88s
+*   Slow 4G: 28.54s
 
-#### 4\. 봇 이름을 입력해주세요.
+참고로 2.5초 이하가 GOOD이다.
 
-![](https://blog.kakaocdn.net/dn/xPLW6/btsowbx49Cv/8rYgDlIelRWIHzFJjkh8K0/img.png)
+## 해결하기
 
-네이밍 규칙은 마지막이 bot으로 끝나면 됩니다. (대소문자 무관) 이름이 이미 존재하는 경우, 다른 이름을 입력해주세요.
+저희 팀은 Cloudflare CDN을 사용하고 있습니다. 사용하시는 CDN이 다르다면 아래 내용 중 무엇이 왜, 필요한 지만 참고해주시기 바랍니다.
 
-#### 5\. 봇 생성 완료
+### 1\. 큰 이미지는 압축합시다.
 
-![](https://blog.kakaocdn.net/dn/cL2ujq/btsowsTR5JS/gucydDXZHsWBFtbxyG9rjK/img.png)
+흔히 사용하는 포맷은 png, jpg가 있지만, 웹 성능 향상을 위해 jpg보다 더 효율적인 압축 형식이 있습니다. 주로 WebP, AVIF가 있습니다.
 
-아래와 같이 API 봇과 API 키가 생성되었습니다.
+Cloudflare에서 동일 이미지 URL에 대한 원본 이미지에 대한 압축본을 응답해주는 [Cloudflare Polish](https://developers.cloudflare.com/images/polish/) 기능이 존재합니다.
 
-#### 6\. 생성된 봇 추가 후 채팅 걸기.
+ [Cloudflare Polish | Cloudflare Images docs
 
-![](https://blog.kakaocdn.net/dn/J4KR9/btsoyWlDDNq/M9KKJD2kHaP0GZDIFV9vAK/img.png)
+Cloudflare Polish is a one-click image optimization product that automatically optimizes images in your site. Polish strips metadata from images and reduces image size through lossy or lossless compression to accelerate the speed of image downloads.
 
-/start 명령어를 보낸 후 <u>채팅을 걸어주세요</u>.
+developers.cloudflare.com](https://developers.cloudflare.com/images/polish/)
 
-### 7\. chat\_id 가져오기
+### 2\. 한번 받아온 이미지는 캐싱합시다. Cache-Control
 
-https://api.telegram.org/bot${bot key}/getUpdates 로 접속해주세요.
+현재 페이지를 새로고침할 경우 이미 로드한 이미지를 다시 불러오는 문제가 존재합니다. 이때 **HTTP 응답 헤더 Cache-Control**을 사용할 수 있습니다.
 
-![](https://blog.kakaocdn.net/dn/bYoDsc/btsoxGX6rQJ/PZtM2v8cYQCVqjpGkUwWY1/img.png)
+Cache-Control은 이미 수신한 리소스의 유효 시간이 지나기 전이라면, 브라우저가 서버로 새로운 요청을 보내지 않고 캐시로부터 리소스를 읽어와서 사용합니다.
 
-chat\_id를 메모해주세요. 유저의pk라고 생각하시면 됩니다.
+![](https://blog.kakaocdn.net/dn/bRpKya/btsKLd8UzDV/GrqY61DcMwOyPxLQkbdmb0/img.png)
 
-여기까지 <u>bot api key</u>와 유저의 <u>chat id</u>를 받아야합니다.
+리소스가 남아있기에 캐시로부터 리소스를 가져옴.
 
-### 2\. Nest.js 코드 예제
+## 개선결과
 
-### 3\. AWS 설정
+![](https://blog.kakaocdn.net/dn/Lj5pY/btsKUwlXJNk/pi7KAx0AQsvNmhLH2yP1nk/img.png)![](https://blog.kakaocdn.net/dn/5uFrc/btsKUFJIdLA/4ucmyWxxALkukcQtxzSDUk/img.png)
 
-#### s3 설정
+Fast 4G: 2.39 s, Slow 4G: 8.24 s
 
-Bucket policy
+*   Fast 4G: 5.88s → 2.39s (59.35%)
+*   Slow 4G: 28.54s → 8.24s (71.13%)
 
-```
-{
-    "Version": "2008-10-17",
-    "Id": "PolicyForCloudFrontPrivateContent",
-    "Statement": [
-        {
-            "Sid": "AllowCloudFrontServicePrincipal",
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "cloudfront.amazonaws.com"
-            },
-            "Action": "s3:GetObject",
-            "Resource": "arn:aws:s3:::ijs-bucket/*",
-            "Condition": {
-                "StringEquals": {
-                    "AWS:SourceArn": "arn:aws:cloudfront::567894824337:distribution/EVE7H18KXODL9"
-                }
-            }
-        }
-    ]
-}
-```
+'어떻게 해야겠다'는 명확했습니다. 클라우드 플레어를 처음 써봐서 문서 읽느라 꽤 시간을 썼네용.
 
-#### IAM 설정
-
-Role의 Trusted entities:
-
-```
-{
-    "Version": "2012-10-17",
-    "Statement": [
-        {
-            "Effect": "Allow",
-            "Principal": {
-                "Service": "ec2.amazonaws.com"
-            },
-            "Action": "sts:AssumeRole"
-        }
-    ]
-}
-```
-
-policy:
-
-```
-{
-	"Version": "2012-10-17",
-	"Statement": [
-		{
-			"Sid": "VisualEditor0",
-			"Effect": "Allow",
-			"Action": [
-				"s3:PutObject",
-				"s3:GetObject",
-				"s3:ListBucket"
-			],
-			"Resource": [
-				"arn:aws:s3:::ijs-bucket/*",
-				"arn:aws:s3:::ijs-bucket"
-			]
-		},
-		{
-			"Sid": "VisualEditor1",
-			"Effect": "Allow",
-			"Action": "s3:ListAllMyBuckets",
-			"Resource": "*"
-		}
-	]
-}
-```
-
-#### EC2 설정
-
-EC2 > Instances > {이미지를 업로드 하는 인스턴스 선택} > Actions > Security > Modify IAM Role > 위 IAM 등록
-
-#### CloudFront 설정
-
-cloudFront는 너무 길어서 영상 첨부합니다.
-
----
-
-### 결과물
-
-![](https://blog.kakaocdn.net/dn/m1OAI/btsoypn4hN8/dw0uXqYUqmPScOwk5mipk1/img.png)
-
-### 공식 문서 및 Github
-
-* github [https://github.com/puleugo/IJS/blob/main/src/app/auth/authentication/authentication.service.ts](https://github.com/puleugo/IJS/blob/main/src/app/auth/authentication/authentication.service.ts)
-* node telegram bot api docs [https://www.npmjs.com/package/node-telegram-bot-api](https://www.npmjs.com/package/node-telegram-bot-api)
+![](chrome-extension://pbhpcbdjngblklnibanbkgkogjmbjeoe/src/public/images/128px.png)
 
