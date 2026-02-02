@@ -1,111 +1,148 @@
 ---
 authors: puleugo
-date: Sun, 24 Nov 2024 18:44:09 +0900
+date: Sun, 16 Feb 2025 12:00:48 +0900
 ---
 
-# [Github] 상호 존중하는 PR 만들기
+# [NestJS] AdminJS 프로덕션 배포하기
 
-본 게시글은 주인공들의 이야기, [이한결](https://www.linkedin.com/in/hanlee0707/)님과의 인터뷰 내용을 참고하여 작성했습니다.  
-[https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI](https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI)
+![](https://blog.kakaocdn.net/dn/bk4Jtx/btsMiJrJ2oR/FftjBdDZ6rm6uYYsdkUo1K/img.png)
 
-Full Video
+## 무엇이 문제인가?
 
-## 도입
+(잘 알고 있으시겠지만) TypeScript로 작성된 파일들을 JavaScript로 컴파일하여 배포해야합니다. 보통 dist 디렉터리에 모아서 배포합니다.
 
-최근 팀원에게 아래와 같은 코멘트를 받았습니다.
+하지만 AdminJS는 빌드해주는 명령어도 공식문서에 없습니다. 개발 환경에서는 생각못했다가 배포할 때 겪는 문제입니다.
 
-> 이한결님과의 인터뷰에는 아래와 같은 답이 있었습니다.
-> 
-> *   가독성 좋은 PR을 만드는 방법
-> *   가독성 좋은 Commit을 만드는 방법
-> 
-> ## 무엇이 상호 존중하는 PR인가?
-> 
-> 상호 존중하는 PR은 읽기 좋은 PR이며 리뷰어 입장에서 "**이거 바로 Approve해도 되겠는데?**"라는 말이 나오는 것이 가장 좋습니다.  
-> 읽기 좋은 PR은 글쓰기를 생각하면 됩니다. 가독성 좋은 글은 다음과 같이 구성되어있습니다:
-> 
-> *   각 문단에는 하나의 주제만 설명한다.
-> *   각 문장에는 하나의 내용만 설명한다.
-> 
-> PR에 적용해보면 PR에는 하나의 주제만을 Commit에는 하나의 내용만으로 구성하는 것이 가독성을 향상하는 간단한 방법입니다.  
->   
-> 
-> ## 구체적으로 좋은 PR을 만드는 방법
-> 
-> ### 1\. 업무에 Check Point를 먼저 정하기
-> 
-> 해결해야할 업무를 수행하기 전 미리 작업을 분리할 수 있는 단위로 쪼갭니다. 한결님의 예시:
-> 
-> 2.  너무 큰 작업인 경우 'Stacked PR'이라는 방법을 활용할 수 있습니다. 
->     
->     ### 2\. Stacked PR 활용하기
->     
->     Stacked PR은 하나의 작업을 여러개의 PR을 활용하여 작업을 쪼개 수행하는 방법을 말합니다.  
->     'Stacked'이라는 명칭에 맞게 하나의 큰 PR 내부에 작은 PR을 만든 후 LIFO 순서로 PR이 Merge하는 특징을 가지고 있습니다.
->     
->     만 번 설명하는 것보다는 보는 게 나을 것 같습니다:
->     
->     #### Stacked PR 예시
->     
->     PR이 어떻게 열리고 닫히는지 참고해주세요.  
->     Main PR에서 작업 내용이 이해하기 쉽도록 핵심 내용만 보여줍니다. 세부적인 내용은 내부 PR 안에서 작업하면 좋습니다. 
->     
->     ```
->     PR #1 "feat/movie-list-query-search" // Main PR
->     - Commit "feat: add basic movie list query with pagination"
->     - Commit "test: add unit tests for basic query functionality"
->     * Open PR #2 "feat/search-by-director-title-actor"
->         - Commit "feat: implement search by director name, movie title, and actor ID"
->         - Commit "test: add tests for search functionality"
->         - Commit "refactor: optimize search query structure"
->     * Merged PR #2 into #1
->     
->     * Open PR #3 "feat/filter-by-category"
->         - Commit "feat: implement category filter with 'All Categories' option"
->         - Commit "chore: add category filter validation logic"
->         - Commit "test: add tests for category filter feature"
->         * Open PR #4 "refactor/category-filter-query-details" // Detailed PR for #3
->             - Commit "refactor: move category filter logic into reusable service"
->             - Commit "test: update unit tests for refactored category filter"
->         * Merged PR #4 into #3
->     * Merged PR #3 into #1
->     
->     * Open PR #5 "feat/sort-by-latest-and-viewers"
->         - Commit "feat: add sort by latest release date and viewer count"
->         - Commit "chore: add validation for sort parameters"
->         - Commit "test: add tests for sorting functionality"
->     * Merged PR #5 into #1
->     
->     * Open PR #6 "feat/additional-response-fields"
->         - Commit "feat: include additional fields (movie ID, category, title, director, price, viewers, created date) in response"
->         - Commit "test: validate response fields in integration tests"
->     * Merged PR #6 into #1
->     ```
->     
->     ### 3\. 작은 Code Change를 유지하기
->     
->     한결님은 이를 약 400-500줄 정도로 유지하려고 하십니다. 1000줄 이하라면 큰 문제는 없습니다.  
->     테스트코드는 필수적입니다. 한결님이 작성하신 500줄의 코드 변경은 아래와 같이 구성됩니다.
->     
->     *   100줄(20%): 기능 변경
->     *   400줄(80%): (최대한 많은) 테스트 코드
->     
->     > (영상에서는 간략하게 언급하고 지나갔지만) 기능없는 빈 메서드를 만들고, '이후 기능이 구현되었을 때 이러한 모습이겠지.' 를 생각하고 테스트를 작성합니다.
->     > 
->     > ## 상호 존중하지 않는 PR은 Moloco 수석 개발자도 어려워한다.
->     > 
->     > 1,000줄의 코드를 한결님에게 보낸다면 한결님은 다음과 같이 말씀하신다고 합니다.
->     > 
->     > > Unit Test가 이미 많이 작성되어 있다면 이를 쪼개서 보내달라고 부탁합니다.  
->     > >  
->     > > 
->     > > ## 팀을 위한 좋은 습관
->     > > 
->     > > *   장주영: "상대의 시간을 존중하는 좋은 습관같다."
->     > > *   이한결: "그것도 맞지만, 이는 상호 존중이다. 내가 상대를 존중했을 때 이 존중이 나에게 돌아올 확률이 크다."
->     > > 
->     > > ## 마치며
->     > > 
->     > > 주인공들의 이야기는 학생 개발자로서 배워가기 좋은 채널이다. 누구나 잘하고 싶은 욕구가 있지만 경험없이 노력만으로는 잘하기 힘든 것들이 있다. 프로 개발자들에게 이러한 경험을 배워갈 수 있다는 것 자체가 축복받은 사회다.
->
+## 어떻게 해야 하는가?
+
+### 1\. 번들링하기
+
+당연하게도 AdminJS 페이지에 해당하는 TypeScript 파일들을 빌드해주면 됩니다. 문서에 안 나와있지만 adminjs에서 지원하는 [bundler](https://github.com/SoftwareBrothers/adminjs-bundler)가 있습니다.
+
+tsconfig.json > compilerOptions.module의 값이
+
+*   commonjs인 경우에는 [2.0.0 이하 버전](https://www.puleugo.dev/util/clipboard.html?text=%22@adminjs/bundler%22:%20%22%5E2.0.0%22)을 설치하시면 됩니다.
+*   그외(ESM)인 경우에는 [3.0.0 이상 버전](https://www.puleugo.dev/util/clipboard.html?text=%22@adminjs/bundler%22:%20%22%5E3.0.0%22)을 설치하시면 됩니다.
+
+저는 프로젝트가 commonjs이기 때문에 2.0.0 버전을 예시로 듭니다. 큰 차이는 없으니 메서드의 jsDoc을 참고하여 사용하시면 됩니다.  
+2.0.0 버전의 경우엔 아래와 같이 사용합니다.
+
+```
+//   src/admin/component/index.ts
+import { ComponentLoader } from 'adminjs';
+
+export const componentLoader = new ComponentLoader();
+export const components = {
+  NotEditableInput: componentLoader.add('NotEditableInput','./NotEditableInput',),
+};
+
+
+//   src/bundler.ts
+import { bundle } from '@adminjs/bundler';
+import { join } from 'path';
+
+void (async () => {
+  await bundle({
+    // yarn run build 시 compoent들이 전부 초기화되는 파일 경로
+    customComponentsInitializationFilePath: 'src/admin/component/index.ts',
+    // 초기화된 compoent들을 번들링하여 결과물을 저장할 Directory 경로
+    destinationDir: 'dist/public',
+  });
+})();
+```
+
+package.json > scripts를 수정
+
+*   ["build": "nest build && node dist/bundler.ts"](https://www.puleugo.dev/util/clipboard.html?text=%22build%22:%20%22nest%20build%20&&%20node%20dist/bundler.ts%22)
+
+yarn run bundle 시 `src/bundler.ts 파일에서 destinationDir로 설정한 위치`에 번들링 결과물이 저장됩니다.
+
+### 2\. 번들링 적용하기
+
+AdminJS는 Client Side Rendering 입니다. 때문에 번들링 파일들의 외부 접근을 제공해줘야만 합니다.  
+이후 번들링 결과물을 정적의 형태로 제공해줘야 합니다. 저는 Vercel에서 Serverless를 기능을 활용하고 있으므로 vercel.json을 아래같이 수정하겠습니다.
+
+```
+{
+  "version": 2,
+  "builds": [
+    {
+      "src": "dist/main.js",
+      "use": "@vercel/node",
+      "config": {
+        "includeFiles": ["dist/**/*"]
+      }
+    },
+    {
+      "src": "dist/public/**/*",
+      "use": "@vercel/static",
+      "config": {
+        "outputDirectory": "dist/public"
+      }
+    }
+  ],
+  "routes": [
+    { "src": "/public/(.*)", "dest": "/dist/public/$1", "methods": ["GET"] },
+    { "src": "/(.*)", "dest": "/dist/main.js" }
+  ]
+}
+```
+
+Nest.js만 사용하고 있으시다면 ServeStaticModule을 사용하시면 됩니다.
+
+### 3\. 번들링 파일 불러오기
+
+```
+@Module({
+    imports: [
+        AdminJsModule.createAdminAsync({
+            useFactory: () => ({
+                adminJsOptions: {
+                    rootPath: '/admin',
+                    assetsCDN: 'https://serverless-adminjs.vercel.app/public/', // 마지막에 /를 꼭 붙여야함
+                }
+            }),
+        }),
+    ],
+})
+export class AdminModule implements OnModuleInit {
+     async onModuleInit() {
+        if (process.env.NODE_ENV === 'development') {
+            await adminjs.watch();
+        }
+    }
+}
+```
+
+이렇게 수행하면 끝.
+
+[코드 예제](https://github.com/puleugo/nestjs-adminjs-serverless)
+
+ [GitHub - puleugo/nestjs-adminjs-serverless: NestJS 환경에서 AdminJS를 사용하는 예제 코드입니다.
+
+NestJS 환경에서 AdminJS를 사용하는 예제 코드입니다. Contribute to puleugo/nestjs-adminjs-serverless development by creating an account on GitHub.
+
+github.com](https://github.com/puleugo/nestjs-adminjs-serverless)
+
+---
+
+그 외 이슈:
+
+### Invalid hook call. Hooks can only be called inside of the body of a function component. This could happen for one of the following reasons
+
+AdminJS 라이브러리가 사용하는 React 버전과 설치한 React의 버전이 동일하지 않아서 생기는 경우가 많습니다.  
+`yarn list --depth=1` 명령어를 입력해서 AdminJS의 React 버전을 조회해 버전을 통일해줍시다.
+
+### 서버리스 환경에서 배포 실패
+
+서버리스는 근본적으로 서비스를 불변성으로 관리합니다. AdminJS는 `NODE_ENV`와 `사전 번들링 여부`와 상관없이 항상 임시 파일(./adminjs)에 번들링을 수행합니다.  
+프로덕션 환경 변수에 `ADMIN_JS_SKIP_BUNDLE=true`를 추가해주면 문제없이 배포됩니다.
+
+### EMS 버전을 사용해도 되나요?
+
+AdminJS 또한 프론트엔드에서의 사용을 지원하기 떄문에 7.0.0 버전 이후로 EMS을 지원합니다. 하지만 Nest.js 같은 Node.js 계열 서버 라이브러리는 아직까지 CJS만을 지원하므로 버전업은 권장하지 않습니다.
+
+### @tiptap/pm/state을 찾을 수 없대요..
+
+별도로 작성했습니다. [이 글](https://puleugo.tistory.com/217)을 읽어주세요.
 

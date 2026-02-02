@@ -3,7 +3,7 @@ authors: puleugo
 date: Fri, 12 Sep 2025 00:05:25 +0900
 ---
 
-# AI를 나만의 주니어 노예로 굴릴 수 있는 3-File System
+# AI를 더 명확하게 사용할 수 있는 3-File System
 
 # 3-File System
 

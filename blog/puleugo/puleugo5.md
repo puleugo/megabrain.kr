@@ -1,86 +1,111 @@
 ---
 authors: puleugo
-date: Sun, 17 Nov 2024 21:44:55 +0900
+date: Sun, 24 Nov 2024 18:44:09 +0900
 ---
 
-# [CloudFlare] 이미지 로드 속도 향상하기
+# [Github] 상호 존중하는 PR 만들기
 
-## 개요
+본 게시글은 주인공들의 이야기, [이한결](https://www.linkedin.com/in/hanlee0707/)님과의 인터뷰 내용을 참고하여 작성했습니다.  
+[https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI](https://youtu.be/CQj797uQw1U?si=PmCScDRERUUNVmSI)
 
-**문제**
+Full Video
 
-Waktaverse.games 사이트의 이미지 로딩 속도가 느려 사용자 경험에 부정적 영향을 미치고 있었습니다.  
-특히 네트워크가 느린 환경에서는 LCP(Largest Contentful Paint) 시간이 권장사항인 2.5를 초과하여, Fast 4G 환경에서는 4.88초, Slow 4G 환경에서는 28.54초가 소요됐습니다.
+## 도입
 
-**해결방안**
+최근 팀원에게 아래와 같은 코멘트를 받았습니다.
 
-이미지 로딩 성능을 개선하기 위해 Cloudflare를 활용하여 다음과 같은 조치를 취했습니다. WebP 형식으로 압축된 이미지 캐시를 응답했으며 페이지 새로고침 시 서버로 재요청하는 문제를 해결하기 위해 Cache-Control 헤더를 추가했습니다.  
-  
-개선 결과:  
-\- Fast 4G 환경: 5.88초 → 2.39초 (약 59.35% 개선)  
-\- Slow 4G 환경: 28.54초 → 8.24초 (약 71.13% 개선) 
-
-*   [waktaverse.games](https://waktaverse.games/) 웹 사이트의 이미지 로드 성능 개선을 수행했다.
-
-## 너무 느려요. 개선해주세요.
-
-![](https://blog.kakaocdn.net/dn/toR2D/btsKKFR12jJ/9FOuaq7CvxG2NGifV90thK/img.png)
-
-상혁이가 Waktaverse 이미지 로드 속도가 느리다고 문의메일을 보냈다.
-
-동아리 친구가 이미지 성능개선 작업 해보고싶다고 말하니까, 내가 속한 팀에 메일을 보내줬다. 
-
-## 어느정도로 느린가?
-
-![](https://blog.kakaocdn.net/dn/bb9ZAB/btsKUABCW8L/eo8RYlYhNKZQ8WzhkKyk4K/img.png)![](https://blog.kakaocdn.net/dn/w3Z7L/btsKUDLRx99/KXrH40FWFYMGMC0FetyJ6k/img.png)
-
-Fast 4G: 5.88 s, Slow 4G: 28.54 s
-
-Chrome Browser의 Performance 기능을 활용하여 성능을 측정해보았다. 네트워크/메모리 성능을 제한하여 측정해볼 수 있으므로 성능 개선 필요 여부를 확인하는데 추천하는 방법이다.
-
-LCP(가장 큰 콘텐츠 페인트) 소요 시간을 측정했다.
-
-*   Fast 4G: 5.88s
-*   Slow 4G: 28.54s
-
-참고로 2.5초 이하가 GOOD이다.
-
-## 해결하기
-
-저희 팀은 Cloudflare CDN을 사용하고 있습니다. 사용하시는 CDN이 다르다면 아래 내용 중 무엇이 왜, 필요한 지만 참고해주시기 바랍니다.
-
-### 1\. 큰 이미지는 압축합시다.
-
-흔히 사용하는 포맷은 png, jpg가 있지만, 웹 성능 향상을 위해 jpg보다 더 효율적인 압축 형식이 있습니다. 주로 WebP, AVIF가 있습니다.
-
-Cloudflare에서 동일 이미지 URL에 대한 원본 이미지에 대한 압축본을 응답해주는 [Cloudflare Polish](https://developers.cloudflare.com/images/polish/) 기능이 존재합니다.
-
- [Cloudflare Polish | Cloudflare Images docs
-
-Cloudflare Polish is a one-click image optimization product that automatically optimizes images in your site. Polish strips metadata from images and reduces image size through lossy or lossless compression to accelerate the speed of image downloads.
-
-developers.cloudflare.com](https://developers.cloudflare.com/images/polish/)
-
-### 2\. 한번 받아온 이미지는 캐싱합시다. Cache-Control
-
-현재 페이지를 새로고침할 경우 이미 로드한 이미지를 다시 불러오는 문제가 존재합니다. 이때 **HTTP 응답 헤더 Cache-Control**을 사용할 수 있습니다.
-
-Cache-Control은 이미 수신한 리소스의 유효 시간이 지나기 전이라면, 브라우저가 서버로 새로운 요청을 보내지 않고 캐시로부터 리소스를 읽어와서 사용합니다.
-
-![](https://blog.kakaocdn.net/dn/bRpKya/btsKLd8UzDV/GrqY61DcMwOyPxLQkbdmb0/img.png)
-
-리소스가 남아있기에 캐시로부터 리소스를 가져옴.
-
-## 개선결과
-
-![](https://blog.kakaocdn.net/dn/Lj5pY/btsKUwlXJNk/pi7KAx0AQsvNmhLH2yP1nk/img.png)![](https://blog.kakaocdn.net/dn/5uFrc/btsKUFJIdLA/4ucmyWxxALkukcQtxzSDUk/img.png)
-
-Fast 4G: 2.39 s, Slow 4G: 8.24 s
-
-*   Fast 4G: 5.88s → 2.39s (59.35%)
-*   Slow 4G: 28.54s → 8.24s (71.13%)
-
-'어떻게 해야겠다'는 명확했습니다. 클라우드 플레어를 처음 써봐서 문서 읽느라 꽤 시간을 썼네용.
-
-![](chrome-extension://pbhpcbdjngblklnibanbkgkogjmbjeoe/src/public/images/128px.png)
+> 이한결님과의 인터뷰에는 아래와 같은 답이 있었습니다.
+> 
+> *   가독성 좋은 PR을 만드는 방법
+> *   가독성 좋은 Commit을 만드는 방법
+> 
+> ## 무엇이 상호 존중하는 PR인가?
+> 
+> 상호 존중하는 PR은 읽기 좋은 PR이며 리뷰어 입장에서 "**이거 바로 Approve해도 되겠는데?**"라는 말이 나오는 것이 가장 좋습니다.  
+> 읽기 좋은 PR은 글쓰기를 생각하면 됩니다. 가독성 좋은 글은 다음과 같이 구성되어있습니다:
+> 
+> *   각 문단에는 하나의 주제만 설명한다.
+> *   각 문장에는 하나의 내용만 설명한다.
+> 
+> PR에 적용해보면 PR에는 하나의 주제만을 Commit에는 하나의 내용만으로 구성하는 것이 가독성을 향상하는 간단한 방법입니다.  
+>   
+> 
+> ## 구체적으로 좋은 PR을 만드는 방법
+> 
+> ### 1\. 업무에 Check Point를 먼저 정하기
+> 
+> 해결해야할 업무를 수행하기 전 미리 작업을 분리할 수 있는 단위로 쪼갭니다. 한결님의 예시:
+> 
+> 2.  너무 큰 작업인 경우 'Stacked PR'이라는 방법을 활용할 수 있습니다. 
+>     
+>     ### 2\. Stacked PR 활용하기
+>     
+>     Stacked PR은 하나의 작업을 여러개의 PR을 활용하여 작업을 쪼개 수행하는 방법을 말합니다.  
+>     'Stacked'이라는 명칭에 맞게 하나의 큰 PR 내부에 작은 PR을 만든 후 LIFO 순서로 PR이 Merge하는 특징을 가지고 있습니다.
+>     
+>     만 번 설명하는 것보다는 보는 게 나을 것 같습니다:
+>     
+>     #### Stacked PR 예시
+>     
+>     PR이 어떻게 열리고 닫히는지 참고해주세요.  
+>     Main PR에서 작업 내용이 이해하기 쉽도록 핵심 내용만 보여줍니다. 세부적인 내용은 내부 PR 안에서 작업하면 좋습니다. 
+>     
+>     ```
+>     PR #1 "feat/movie-list-query-search" // Main PR
+>     - Commit "feat: add basic movie list query with pagination"
+>     - Commit "test: add unit tests for basic query functionality"
+>     * Open PR #2 "feat/search-by-director-title-actor"
+>         - Commit "feat: implement search by director name, movie title, and actor ID"
+>         - Commit "test: add tests for search functionality"
+>         - Commit "refactor: optimize search query structure"
+>     * Merged PR #2 into #1
+>     
+>     * Open PR #3 "feat/filter-by-category"
+>         - Commit "feat: implement category filter with 'All Categories' option"
+>         - Commit "chore: add category filter validation logic"
+>         - Commit "test: add tests for category filter feature"
+>         * Open PR #4 "refactor/category-filter-query-details" // Detailed PR for #3
+>             - Commit "refactor: move category filter logic into reusable service"
+>             - Commit "test: update unit tests for refactored category filter"
+>         * Merged PR #4 into #3
+>     * Merged PR #3 into #1
+>     
+>     * Open PR #5 "feat/sort-by-latest-and-viewers"
+>         - Commit "feat: add sort by latest release date and viewer count"
+>         - Commit "chore: add validation for sort parameters"
+>         - Commit "test: add tests for sorting functionality"
+>     * Merged PR #5 into #1
+>     
+>     * Open PR #6 "feat/additional-response-fields"
+>         - Commit "feat: include additional fields (movie ID, category, title, director, price, viewers, created date) in response"
+>         - Commit "test: validate response fields in integration tests"
+>     * Merged PR #6 into #1
+>     ```
+>     
+>     ### 3\. 작은 Code Change를 유지하기
+>     
+>     한결님은 이를 약 400-500줄 정도로 유지하려고 하십니다. 1000줄 이하라면 큰 문제는 없습니다.  
+>     테스트코드는 필수적입니다. 한결님이 작성하신 500줄의 코드 변경은 아래와 같이 구성됩니다.
+>     
+>     *   100줄(20%): 기능 변경
+>     *   400줄(80%): (최대한 많은) 테스트 코드
+>     
+>     > (영상에서는 간략하게 언급하고 지나갔지만) 기능없는 빈 메서드를 만들고, '이후 기능이 구현되었을 때 이러한 모습이겠지.' 를 생각하고 테스트를 작성합니다.
+>     > 
+>     > ## 상호 존중하지 않는 PR은 Moloco 수석 개발자도 어려워한다.
+>     > 
+>     > 1,000줄의 코드를 한결님에게 보낸다면 한결님은 다음과 같이 말씀하신다고 합니다.
+>     > 
+>     > > Unit Test가 이미 많이 작성되어 있다면 이를 쪼개서 보내달라고 부탁합니다.  
+>     > >  
+>     > > 
+>     > > ## 팀을 위한 좋은 습관
+>     > > 
+>     > > *   장주영: "상대의 시간을 존중하는 좋은 습관같다."
+>     > > *   이한결: "그것도 맞지만, 이는 상호 존중이다. 내가 상대를 존중했을 때 이 존중이 나에게 돌아올 확률이 크다."
+>     > > 
+>     > > ## 마치며
+>     > > 
+>     > > 주인공들의 이야기는 학생 개발자로서 배워가기 좋은 채널이다. 누구나 잘하고 싶은 욕구가 있지만 경험없이 노력만으로는 잘하기 힘든 것들이 있다. 프로 개발자들에게 이러한 경험을 배워갈 수 있다는 것 자체가 축복받은 사회다.
+>
 
